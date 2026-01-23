@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -15,27 +15,48 @@ public class Mushroom : MonoBehaviour
     private static readonly int Attack = Animator.StringToHash("Attack");
     private static readonly int Hit = Animator.StringToHash("Hit");
     private static readonly int Dead = Animator.StringToHash("Dead");
-    
-    [SerializeField] private Collider AttackCollider;
-    [SerializeField] private AnimEventReceiver AnimEventReceiver;
 
-    [SerializeField] private Transform target;
+    public float MoveSpeed { get; set; } = 5.0f;
+
+    [Header("AI 설정")] 
+    [SerializeField] private float patrolRadius = 6.0f;
     
-    public Transform Player { get; private set; }
     [Header("몬스터의 탐지 범위 설정")]
+    [SerializeField] private Transform target;
+    [SerializeField] private Transform eyeTransform;
     [SerializeField] private float detectionRadius = 10.0f;
     [SerializeField, Range(0, 360)] 
     // 부채꼴 시야각을 위한 범위 지정
-    private float detecionAngle = 90.0f;
+    private float detectionAngle = 90.0f;
     [SerializeField] private LayerMask playerLayer; // 플레이어 탐지를 위한 레이어
     [SerializeField] private LayerMask obstacleLayer; // 장애물 탐지를 위한 레이어
-    [SerializeField] private Transform eyeTransform;
+    
+    
+    [Header("애니메이션 및 Collider")]
+    [SerializeField] private Collider AttackCollider;
+    [SerializeField] private AnimEventReceiver AnimEventReceiver;
+    
+   
+    // 개발 초기 테스트를 위해서 공개프로퍼티로 생성
+    public Transform Target => target;
+    public Transform EyeTransform => eyeTransform;
+    public float PatrolRadius => patrolRadius;
+    public float DetectionRadius => detectionRadius;
+    public float DetectionAngle => detectionAngle;
+    public LayerMask PlayerLayer => playerLayer;
+    public LayerMask ObstacleLayer => obstacleLayer;
+    
     
     private Animator Animator { get; set; }
     private NavMeshAgent Agent { get; set; }
     private Dictionary<Type, BaseState> States { get; set; }
     private BaseState CurrentState { get; set; }
     private BaseState DefaultState { get; set; }
+
+    public void SetTarget(Transform newTarget)
+    {
+        target = newTarget;
+    }
 
     private void Awake()
     {
@@ -58,25 +79,10 @@ public class Mushroom : MonoBehaviour
             mushroom = this,
             attackCollider = AttackCollider,
             mushroomAnimator = Animator,
-            AnimEventReceiver = AnimEventReceiver,
+            animEventReceiver = AnimEventReceiver,
             agent = Agent,
-            target = target,
-            eyeTransform = eyeTransform,
-            playerLayer = playerLayer,
-            obstacleLayer = obstacleLayer,
-            detectionRadius = detectionRadius,
-            detectionAngle = detecionAngle
+   
         };
-        
-       // BaseState.StateControllerParameter param = 
-       //     new BaseState.StateControllerParameter();
-
-       // param.mushroom = this;
-       // param.attackCollider = AttackCollider;
-       // param.mushroomAnimator = Animator;
-       // param.AnimEventReceiver = AnimEventReceiver;
-        
-        
         
         foreach (var state in States.Values)
         {
@@ -85,6 +91,11 @@ public class Mushroom : MonoBehaviour
         
     }
 
+    private void Start()
+    {
+        ChangeState<IdleState>();
+    }
+    
     private void Update()
     {
         CurrentState.UpdateState();
@@ -128,19 +139,19 @@ public class Mushroom : MonoBehaviour
         Handles.color = new Color(1f,1f,0f, 0.2f);
         
         // 부채꼴의 시작 방향을 계산합니다.
-        Vector3 rangeDirection = Quaternion.Euler(0, -detecionAngle / 2, 0) * eyeTransform.forward;
+        Vector3 rangeDirection = Quaternion.Euler(0, -detectionAngle / 2, 0) * eyeTransform.forward;
         
         // 채워진 부채꼴을 그려줍니다.
         Handles.DrawSolidArc(
             eyeTransform.position, // 중심점
             eyeTransform.up, // 부채꼴이 그려질 평면의 법선 백터(몬스터의 위 방향)
             rangeDirection, // 부채꼴의 시작 방향
-            detecionAngle,      // 부채꼴의 총 각도
+            detectionAngle,      // 부채꼴의 총 각도
             detectionRadius);   // 부채꼴의 반 지름
 
         Handles.color = Color.yellow;
-        Vector3 rightDirection = Quaternion.Euler(0, detecionAngle / 2, 0) * eyeTransform.forward;
         Vector3 leftDirection = rangeDirection; // 시작 방향과 동일
+        Vector3 rightDirection = Quaternion.Euler(0, detectionAngle / 2, 0) * eyeTransform.forward;
         
         Handles.DrawLine(eyeTransform.position, eyeTransform.position + rightDirection * detectionRadius, 2f);
         Handles.DrawLine(eyeTransform.position, eyeTransform.position + leftDirection * detectionRadius, 2f);

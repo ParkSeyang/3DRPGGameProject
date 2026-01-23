@@ -8,41 +8,28 @@ public abstract class BaseState
     public struct StateControllerParameter
     {
         public Mushroom mushroom;
-        public Collider attackCollider;
         public Animator mushroomAnimator;
-        public AnimEventReceiver AnimEventReceiver;
         public NavMeshAgent agent;
-        public Transform target;
-        public Transform eyeTransform;
-        public LayerMask playerLayer;
-        public LayerMask obstacleLayer;
-        public float detectionRadius;
-        public float detectionAngle;
+        public AnimEventReceiver animEventReceiver;
+        public Collider attackCollider;
     }
+    
+    // 플레이어의 콜라이더를 감지할 배열을 미리 할당해놓는다.
+    private readonly Collider[] targetBuffer = new Collider[1];
     
     protected Mushroom MushRoom { get; private set; }
     protected Animator MushRoomAnimator { get; private set; }
     protected NavMeshAgent Agent { get; private set; }
-    protected Transform Target { get; private set; }
-    protected Transform EyeTransform { get; private set; }
-    protected LayerMask PlayerLayer { get; private set; }
-    protected LayerMask ObstacleLayer { get; private set; }
-    
-    protected float DetectionRadius { get; private set; }
-    
-    protected float DetectionAngle { get; private set; }
-    
+    protected AnimEventReceiver AnimEventReceiver { get; private set; }
+    protected Collider AttackCollider { get; private set; }
+
     public virtual void Initialize(StateControllerParameter parameter)
     {
         MushRoom = parameter.mushroom;
         MushRoomAnimator = parameter.mushroomAnimator;
         Agent = parameter.agent;
-        Target = parameter.target;
-        EyeTransform = parameter.eyeTransform;
-        PlayerLayer = parameter.playerLayer;
-        ObstacleLayer = parameter.obstacleLayer;
-        DetectionRadius = parameter.detectionRadius;
-        DetectionAngle = parameter.detectionAngle;
+        AnimEventReceiver = parameter.animEventReceiver;
+        AttackCollider = parameter.attackCollider;
     }
 
 
@@ -54,32 +41,39 @@ public abstract class BaseState
 
     public bool IsPlayerInSight()
     {
-        if (Target == null)
+        int count = Physics.OverlapSphereNonAlloc(MushRoom.EyeTransform.position, MushRoom.DetectionRadius,
+            targetBuffer, MushRoom.PlayerLayer);
+        if (count == 0)
         {
             return false;
         }
 
-        Collider[] playerColliders = Physics.OverlapSphere(EyeTransform.position, DetectionRadius, PlayerLayer);
+        Transform potentialTarget = targetBuffer[0].transform;
         
-        if (playerColliders.Length == 0)
+        Vector3 targetPosition = potentialTarget.position + Vector3.up * 1.0f;
+
+        Vector3 directionToTarget = (targetPosition - MushRoom.EyeTransform.position).normalized;
+
+        float angleToTarget = Vector3.Angle(MushRoom.EyeTransform.forward, directionToTarget);
+
+        if (angleToTarget > MushRoom.DetectionAngle / 2.0f)
         {
+            Debug.Log($"감지 실패 : 시야각에서 벗어남 {angleToTarget:F1}");
             return false;
         }
 
-        Vector3 directionToPlayer = (Target.position - EyeTransform.position).normalized;
-
-        if (Vector3.Angle(EyeTransform.forward, directionToPlayer) < DetectionAngle / 2)
-        {
-            float distanceToPlayer = Vector3.Distance(EyeTransform.position, Target.position);
-
-            if (Physics.Raycast(EyeTransform.position, directionToPlayer, 
-                    distanceToPlayer, ObstacleLayer) == false)
-            {
-                return true;
-            }
-        }
+        float distanceToTarget = Vector3.Distance(MushRoom.EyeTransform.position, targetPosition);
         
-        return false;
+        
+        if (Physics.Raycast(MushRoom.EyeTransform.position, directionToTarget, 
+                out RaycastHit hit, distanceToTarget, MushRoom.ObstacleLayer))
+        {
+            Debug.Log($"감지 실패: 장애물에 막힘 ({hit.collider.name})");
+            return false;
+        }
+        Debug.Log("감지 성공! 추격을 시작합니다");
+        MushRoom.SetTarget(potentialTarget);
+        return true;
     }
 
 }

@@ -4,27 +4,41 @@ public class AttackState : BaseState
 {
     private static readonly int Attack = Animator.StringToHash("Attack");
     
-    private Collider AttackCollider;
-    private AnimEventReceiver receiver;
-
     private const string ATP_COLLIDER_ON = "Attack_Collider_On";
     private const string ATP_COLLIDER_OFF = "Attack_Collider_Off";
     private const string ATP_ANIM_END = "Attack_End";
     
-    
     public override void Initialize(StateControllerParameter parameter)
     {
         base.Initialize(parameter);
-        AttackCollider = parameter.attackCollider;
-        receiver = parameter.AnimEventReceiver;
     }
 
 
     public override void EnterState()
     {
-        AttackCollider.enabled = true;
-        MushRoomAnimator.SetTrigger(Attack);
+        if (Agent.isOnNavMesh)
+        {
+            Agent.isStopped = true;
+            Agent.ResetPath();
+        }
+
+        if (MushRoom.Target != null)
+        {
+            // 방향 구하는법 
+            // (플레이어의 위치 - 몬스터의 위치) 해주고 정규화 해준다.
+            Vector3 direction = (MushRoom.Target.position - MushRoom.transform.position).normalized;
+            direction.y = 0;
+            if (direction != Vector3.zero)
+            {
+                MushRoom.transform.rotation = Quaternion.LookRotation(direction);
+            }
+        }
+
+        AttackCollider.enabled = false;
         
+        MushRoomAnimator.SetTrigger(Attack);
+        AnimEventReceiver.OnAnimationTriggerReceived += OnTriggeredEvent;
+
     }
 
     public override void UpdateState()
@@ -33,8 +47,10 @@ public class AttackState : BaseState
     }
 
     public override void ExitState()
-    {
+    { 
         AttackCollider.enabled = false;
+        
+        AnimEventReceiver.OnAnimationTriggerReceived -= OnTriggeredEvent;
     }
 
     public void OnTriggeredEvent(string animEvent)

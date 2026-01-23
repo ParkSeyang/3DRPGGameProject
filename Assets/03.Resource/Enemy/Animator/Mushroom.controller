@@ -92,9 +92,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AnimTriggerEventSender
   enterEvent:
     parameter: 
-  updateEvents: []
+  updateEvents:
+  - parameter: Attack_Collider_On
+    timing: 0.156
+  - parameter: Attack_Collider_Off
+    timing: 0.405
   exitEvent:
-    parameter: 
+    parameter: Attack_End
 --- !u!1101 &-6797864608775879710
 AnimatorStateTransition:
   m_ObjectHideFlags: 1

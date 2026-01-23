@@ -5,15 +5,12 @@ using System.Collections.Generic;
 public class IdleState : BaseState
 {
     private static readonly int Idle = Animator.StringToHash("Idle");
-    private const float WAIT_TIME = 3.0f;
+    private const float WAIT_TIME = 5.0f;
     private float timer = 0.0f;
-
-    private AnimEventReceiver receiver;
     
     public override void Initialize(StateControllerParameter parameter)
     {
         base.Initialize(parameter);
-        receiver = parameter.AnimEventReceiver;
     }
     
     public override void EnterState()
@@ -36,7 +33,7 @@ public class IdleState : BaseState
         }
         
         timer += Time.deltaTime;
-        if (timer > WAIT_TIME && IsPlayerInSight() == false)
+        if (timer > WAIT_TIME)
         {
             MushRoom.ChangeState<PatrolState>();
         }
