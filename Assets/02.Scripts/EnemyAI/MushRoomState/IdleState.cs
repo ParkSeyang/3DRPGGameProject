@@ -5,53 +5,46 @@ using System.Collections.Generic;
 public class IdleState : BaseState
 {
     private static readonly int Idle = Animator.StringToHash("Idle");
-    
     private const float WAIT_TIME = 3.0f;
     private float timer = 0.0f;
+
+    private AnimEventReceiver receiver;
     
-    [SerializeField] private Transform target;
-    
+    public override void Initialize(StateControllerParameter parameter)
+    {
+        base.Initialize(parameter);
+        receiver = parameter.AnimEventReceiver;
+    }
     
     public override void EnterState()
     {
         timer = 0.0f;
+        MushRoomAnimator.SetTrigger(Idle);
     }
 
     public override void UpdateState()
     {
-        timer += Time.deltaTime;
-        if (timer > WAIT_TIME)
+        // 플레이어는 대기중에도 시야 감지 범위를 통해서 언제든지 추격 상태로 전환
+        // 할 수 있어야 되고 만약 대기시간이 길어지면 정찰상태로 전환되게끔 해줘야됨 
+        
+        // 플레이어가 탐지 범위에 들어왔는지 확인하는 조건문이다
+        if (IsPlayerInSight())
         {
-            switch (mushroomState)
-            {
-                case MushroomState.Idle:
-                    Mushroom.ChangeState<IdleState>();
-                    break;
-                case MushroomState.Patrol:
-                    Mushroom.ChangeState<PatrolState>();
-                    break;
-                case MushroomState.Chase:
-                    Mushroom.ChangeState<ChaseState>();
-                    break;
-                case MushroomState.Attack:
-                    Mushroom.ChangeState<AttackState>();
-                    break;
-                case MushroomState.Hit:
-                    Mushroom.ChangeState<HitState>();
-                    break;
-                case MushroomState.Dead:
-                    Mushroom.ChangeState<DeadState>();
-                    break;
-                default:
-                    Mushroom.ChangeState<IdleState>();
-                    break;
-            }
+            MushRoom.ChangeState<ChaseState>();
+            return; // 발견했으면 굳이 밑의 로직을 실행할 이유가 없으므로 대기타이머를 무시하고 추적 상태로 전환
+            
         }
+        
+        timer += Time.deltaTime;
+        if (timer > WAIT_TIME && IsPlayerInSight() == false)
+        {
+            MushRoom.ChangeState<PatrolState>();
+        }
+        
     }
 
     public override void ExitState()
     {
-        // if문으로 플레이어를 발견하면 공격상태로 전환
-        // 그게 아니라면 정찰 모드로 전환 
+        
     }
 }

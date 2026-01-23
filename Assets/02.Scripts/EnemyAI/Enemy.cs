@@ -20,9 +20,8 @@ public abstract class Enemy : MonoBehaviour
     {
         Mushroom = parameter.mushroom;
         MushRoomAnimator = parameter.mushroomAnimator;
-
     }
-
+    
 
     public abstract void EnterState();
 

@@ -3,6 +3,13 @@ using System.Collections.Generic;
 
 public class HitState : BaseState
 {
+    private static readonly int Hit = Animator.StringToHash("Hit");
+    
+    public override void Initialize(StateControllerParameter parameter)
+    {
+        base.Initialize(parameter);
+    }
+    
     public override void EnterState()
     {
         throw new System.NotImplementedException();
@@ -17,4 +24,6 @@ public class HitState : BaseState
     {
         throw new System.NotImplementedException();
     }
+    
+
 }

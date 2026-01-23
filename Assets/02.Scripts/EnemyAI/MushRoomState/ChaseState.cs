@@ -2,16 +2,10 @@ using UnityEngine;
 
 public class ChaseState : BaseState
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    
+    public override void Initialize(StateControllerParameter parameter)
     {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        base.Initialize(parameter);
     }
 
     public override void EnterState()

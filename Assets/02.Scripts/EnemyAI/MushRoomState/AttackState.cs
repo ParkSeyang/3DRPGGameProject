@@ -48,7 +48,7 @@ public class AttackState : BaseState
                 AttackCollider.enabled = false;
                 break;
             case ATP_ANIM_END:
-                Mushroom.ChangeState<IdleState>();
+                MushRoom.ChangeState<IdleState>();
                 break;
             default:
                 break;

@@ -2,30 +2,27 @@ using UnityEngine;
 
 public class DeadState : BaseState
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    // 피격상태에서 체력이 0이라서 사망상태에 돌입했을시 
+    // 몬스터 객체는 보상을 떨군후 소멸되야됨.
+    private static readonly int Dead = Animator.StringToHash("Dead");
+    
+    public override void Initialize(StateControllerParameter parameter)
     {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        base.Initialize(parameter);
     }
 
     public override void EnterState()
     {
-        throw new System.NotImplementedException();
+        
     }
 
     public override void UpdateState()
     {
-        throw new System.NotImplementedException();
+        
     }
 
     public override void ExitState()
     {
-        throw new System.NotImplementedException();
+        
     }
 }
