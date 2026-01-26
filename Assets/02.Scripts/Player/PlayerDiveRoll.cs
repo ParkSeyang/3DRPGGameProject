@@ -7,7 +7,10 @@ public class PlayerDiveRoll : MonoBehaviour
     [SerializeField] private Animator animator;
     [SerializeField] private AnimEventReceiver animEventReceiver;
     [SerializeField] private float DiveRollSpeed = 10.0f;
+    [SerializeField] private bool isDiveRoll = false;
 
+    private AnimatorStateInfo timeInfo;
+    
     private void Awake()
     {
         animator = GetComponent<Animator>();
@@ -17,13 +20,15 @@ public class PlayerDiveRoll : MonoBehaviour
     
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.Space) && isDiveRoll == false)
         {
+            isDiveRoll = true;
             animator.SetBool(DiveRoll, true);
+            timeInfo = animator.GetCurrentAnimatorStateInfo(0);
         }
         else
         {
-            animator.SetBool(DiveRoll, false);
+            animator.SetBool(DiveRoll, false);  
         }
     }
 }

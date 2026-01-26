@@ -10,16 +10,10 @@ using UnityEditor;
 
 public class Mushroom : MonoBehaviour
 {
-    private static readonly int Idle = Animator.StringToHash("Idle");
-    private static readonly int Walk = Animator.StringToHash("Walk");
-    private static readonly int Attack = Animator.StringToHash("Attack");
-    private static readonly int Hit = Animator.StringToHash("Hit");
-    private static readonly int Dead = Animator.StringToHash("Dead");
-
     public float MoveSpeed { get; set; } = 5.0f;
 
     [Header("AI 설정")] 
-    [SerializeField] private float patrolRadius = 6.0f;
+    [SerializeField] private float patrolRadius = 12.0f;
     
     [Header("몬스터의 탐지 범위 설정")]
     [SerializeField] private Transform target;
@@ -35,8 +29,13 @@ public class Mushroom : MonoBehaviour
     [Header("애니메이션 및 Collider")]
     [SerializeField] private Collider AttackCollider;
     [SerializeField] private AnimEventReceiver AnimEventReceiver;
-    
-   
+
+
+    [Header("테스트용 사망 로직")] 
+    [SerializeField] private int maxHitCount = 3;
+
+    public int CurrentHitCount { get; private set; } = 0;
+
     // 개발 초기 테스트를 위해서 공개프로퍼티로 생성
     public Transform Target => target;
     public Transform EyeTransform => eyeTransform;
@@ -50,7 +49,7 @@ public class Mushroom : MonoBehaviour
     private Animator Animator { get; set; }
     private NavMeshAgent Agent { get; set; }
     private Dictionary<Type, BaseState> States { get; set; }
-    private BaseState CurrentState { get; set; }
+    public BaseState CurrentState { get; set; }
     private BaseState DefaultState { get; set; }
 
     public void SetTarget(Transform newTarget)
@@ -119,11 +118,33 @@ public class Mushroom : MonoBehaviour
     
     private void OnTriggerEnter(Collider other)
     {
-        // 피격 판정 당했을시 몬스터에게 피격 상태로 전환됨.
-        // 방법1 피격당할시 충돌한 해당 태그의 이름이 무기일경우 피격상태로 전환되게한다.
-        // 방법2 피격당할시 무기의 ID정보를 확인해서 무기일경우 피격상태로 전환되게한다.
+        if (other.gameObject.CompareTag("Weapon"))
+        {
+            if ((CurrentState is DeadState) == false)
+            {
+                var attacker = other.GetComponentInParent<PlayerController>();
+                if (attacker != null)
+                {
+                    SetTarget(attacker.transform);
+                }
+
+                CurrentHitCount++;
+                Debug.Log($"버섯이 피격당했다! {CurrentHitCount} / {maxHitCount}");
+                if (CurrentHitCount >= maxHitCount)
+                {
+                    ChangeState<DeadState>();
+                }
+                else
+                {
+                    ChangeState<HitState>();
+                }
+            }
+        }
     }
 
+    
+    
+    
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()
     {

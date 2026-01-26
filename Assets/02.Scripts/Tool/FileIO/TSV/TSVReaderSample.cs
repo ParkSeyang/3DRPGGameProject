@@ -17,7 +17,7 @@ public class TSVReaderSample : MonoBehaviour
         //Unity의 StreamingAssets 경로, PersistentDataPath 경로 검색해서 스터디 할것.
         //아래 두 내용 주석 해제하면 어떤건지 나옴
         
-        //Application.streamingAssetsPath
+        // Application.streamingAssetsPath
         //Application.persistentDataPath
         
         

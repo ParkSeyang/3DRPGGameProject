@@ -22,6 +22,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private AnimEventReceiver animEventReceiver;
     [SerializeField]private Collider playerCollider;
 
+    [SerializeField] private Rigidbody playerRigid;
    // [SerializeField] private Transform groundCheck;
    // public float groundCheckDistance = 0.1f;
    // public LayerMask groundMask = ~0;
@@ -33,6 +34,7 @@ public class PlayerController : MonoBehaviour
         animator = GetComponent<Animator>();
         animEventReceiver = GetComponent<AnimEventReceiver>();
         playerCollider = GetComponent<Collider>();
+        playerRigid = GetComponent<Rigidbody>();
     }
 
     private void Start()
@@ -40,34 +42,35 @@ public class PlayerController : MonoBehaviour
         
     }
 
-    private void Update()
-    {
-        float inputX = Input.GetAxis("Horizontal");
-        float inputY = Input.GetAxis("Vertical");
-        
-        animator.SetFloat(InputX, inputX);
-        animator.SetFloat(InputY, inputY);
-        
-        if (Input.GetAxis("Horizontal") != 0 || Input.GetAxis("Vertical") != 0)
-        {
-            animator.SetBool(IsMove, true);
-        }
-        else
-        {
-            animator.SetBool(IsMove, false);
-        }
-        
-        transform.Translate(new Vector3(inputX * walkSpeed , 0, inputY * walkSpeed) * Time.deltaTime);
-        if (Input.GetKey(KeyCode.LeftShift))
-        {
-            animator.SetBool(IsRun, true);
-            transform.Translate(new Vector3(inputX * runSpeed, 0, inputY * runSpeed) * Time.deltaTime);
-        }
-        else
-        {
-            animator.SetBool(IsRun, false);
-        }
 
+    private void Update() 
+    {
+       float inputX = Input.GetAxis("Horizontal");
+       float inputY = Input.GetAxis("Vertical");
+       
+       animator.SetFloat(InputX, inputX);
+       animator.SetFloat(InputY, inputY);
+       
+       if (Input.GetAxis("Horizontal") != 0 || Input.GetAxis("Vertical") != 0)
+       {
+           animator.SetBool(IsMove, true);
+       }
+       else
+       {
+           animator.SetBool(IsMove, false);
+       }
+       
+       transform.Translate(new Vector3(inputX * walkSpeed , 0, inputY * walkSpeed) * Time.deltaTime);
+       if (Input.GetKey(KeyCode.LeftShift))
+       {
+           animator.SetBool(IsRun, true);
+           transform.Translate(new Vector3(inputX * runSpeed, 0, inputY * runSpeed) * Time.deltaTime);
+       }
+       else
+       {
+           animator.SetBool(IsRun, false);
+       }
+       
     }
 
   //  private void OnDrawGizmos()
@@ -90,4 +93,29 @@ public class PlayerController : MonoBehaviour
   //      return Physics.CheckBox(groundCheck.position, boxChecker, Quaternion.identity, groundMask);
   //  }
 
+  #region rigidbodytest
+
+  // private void FixedUpdate()
+  // {
+  //   OnMove();
+  // }
+//
+  // private void OnMove()
+  // {
+  //  float inputX = Input.GetAxis("Horizontal");
+  //  float inputY = Input.GetAxis("Vertical");
+  //  
+  //  animator.SetFloat(InputX, inputX);
+  //  animator.SetFloat(InputY, inputY);
+//
+  //  
+  //    Vector3 MoveDirection = inputX * transform.right + inputY * transform.forward;
+  //    
+  //    
+  //   playerRigid.AddForce(MoveDirection * walkSpeed * 100.0f, ForceMode.Acceleration);
+  //   playerRigid.AddForce(Vector3.down * 5.0f, ForceMode.Impulse);
+  // }
+
+  #endregion
+  
 }
