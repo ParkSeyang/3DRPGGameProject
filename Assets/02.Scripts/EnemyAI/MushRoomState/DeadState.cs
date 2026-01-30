@@ -33,6 +33,8 @@ public class DeadState : BaseState
         
         MushRoomAnimator.SetTrigger(Dead);
 
+        MushRoom.TriggerOnDeadEvent();
+
         Debug.Log($"{MushRoom.name}이 {MushRoom.CurrentHitCount}번 맞고 쓰러졌음");
     }
 

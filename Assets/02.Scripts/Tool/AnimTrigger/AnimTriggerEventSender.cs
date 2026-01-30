@@ -39,7 +39,7 @@ public class AnimTriggerEventSender : StateMachineBehaviour
     public override void OnStateUpdate(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
         base.OnStateUpdate(animator, stateInfo, layerIndex);
-     
+        Debug.Log($"현재 시간: {stateInfo.normalizedTime}"); 
         if (updateEvents == null || updateEvents.Length == 0) return;
         
         for (int i = 0; i < updateEvents.Length; i++)

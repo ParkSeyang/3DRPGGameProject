@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
@@ -10,6 +10,14 @@ using UnityEditor;
 
 public class Mushroom : MonoBehaviour
 {
+    [Header("Data Settings")]
+    [SerializeField] private int enemyID = 2; // TSV 파일의 ID와 일치해야 함
+    public int Exp { get; private set; }
+    public int DropGold { get; private set; } = 50;
+    public event Action OnDead;
+
+    public void TriggerOnDeadEvent() => OnDead?.Invoke();
+
     public float MoveSpeed { get; set; } = 5.0f;
 
     [Header("AI 설정")] 
@@ -63,6 +71,8 @@ public class Mushroom : MonoBehaviour
         Agent = GetComponent<NavMeshAgent>();
         AttackCollider.enabled = false;
 
+        InitializeStat();
+        
         States = new Dictionary<Type, BaseState>();
         States.Add(typeof(IdleState), new IdleState());
         States.Add(typeof(PatrolState), new PatrolState());
@@ -87,12 +97,57 @@ public class Mushroom : MonoBehaviour
         {
             state.Initialize(param);
         }
-        
+
+       // var hitBox = AttackCollider.GetComponent<HitBox>();
+
+       // if (hitBox != null)
+       // {
+       //     hitBox.Initialize(this);
+       // }
+       // else
+       // {
+       //     Debug.Log($"{name}의 AttackCollider에 HitBox 컴포넌트가 없습니다!");
+       // }
+
     }
 
     private void Start()
     {
+        OnDead += () =>
+        {
+           
+        };
+
+       // var hurtBoxes = GetComponentsInChildren<HurtBox>();
+       // foreach (var hb in hurtBoxes)
+       // {
+       //     hb.Initialize(this);
+       // }
+
         ChangeState<IdleState>();
+    }
+
+    private void InitializeStat()
+    {
+        if (EnemyDataManager.Instance == null)
+        {
+            Debug.LogError("[Mushroom] EnemyDataManager가 없습니다.");
+            return;
+        }
+
+        var stat = EnemyDataManager.Instance.GetEnemyStat(enemyID);
+        if (stat != null)
+        {
+            Exp = stat.Exp;
+            MoveSpeed = stat.MoveSpeed;
+            
+            Debug.Log($"<color=yellow>[Mushroom Data]</color> {stat.Name} (ID:{stat.ID}) 로드 완료\n" +
+                      $"HP: {stat.HP}, ATK: {stat.ATK}, DEF: {stat.DEF}, Exp: {stat.Exp}, Speed: {stat.MoveSpeed}");
+        }
+        else
+        {
+            Debug.LogError($"[Mushroom] ID {enemyID}에 해당하는 데이터를 찾지 못했습니다.");
+        }
     }
     
     private void Update()
@@ -118,31 +173,30 @@ public class Mushroom : MonoBehaviour
     
     private void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.CompareTag("Weapon"))
-        {
-            if ((CurrentState is DeadState) == false)
-            {
-                var attacker = other.GetComponentInParent<PlayerController>();
-                if (attacker != null)
-                {
-                    SetTarget(attacker.transform);
-                }
-
-                CurrentHitCount++;
-                Debug.Log($"버섯이 피격당했다! {CurrentHitCount} / {maxHitCount}");
-                if (CurrentHitCount >= maxHitCount)
-                {
-                    ChangeState<DeadState>();
-                }
-                else
-                {
-                    ChangeState<HitState>();
-                }
-            }
-        }
+        
     }
 
-    
+    public void TakeDamage(float damage)
+    {
+        CurrentHitCount++;
+        
+        Debug.Log($"[Mushroom] 피격! 데미지 : {damage}");
+
+        if (CurrentHitCount >= maxHitCount)
+        {
+            ChangeState<DeadState>();
+        }
+        else
+        {
+            ChangeState<HitState>();
+        }
+
+    }
+
+   // public void OnHitDetected(HitInfo hitInfo)
+   // {
+   //     // 몬스터가 플레이어를 때렸을떄 로직 작성
+   // }
     
     
 #if UNITY_EDITOR
@@ -178,5 +232,6 @@ public class Mushroom : MonoBehaviour
         Handles.DrawLine(eyeTransform.position, eyeTransform.position + leftDirection * detectionRadius, 2f);
     }
 #endif
+
     
 }

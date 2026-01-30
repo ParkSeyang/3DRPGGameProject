@@ -9,11 +9,13 @@ public class AttackState : BaseState
     private const string ATP_ANIM_END = "Attack_End";
 
     private const float ATTACK_RANGE_TOLERANCE = 0.2f;
-    
+   // private HitBox hitBox; // 캐싱할 변수 추가
     
     public override void Initialize(StateControllerParameter parameter)
     {
         base.Initialize(parameter);
+        // AttackCollider에서 HitBox 컴포넌트 찾아오기
+       // hitBox = AttackCollider.GetComponent<HitBox>();
     }
 
 
@@ -75,10 +77,12 @@ public class AttackState : BaseState
             case ATP_COLLIDER_ON:
                 Debug.Log($"공격 시작");
                 AttackCollider.enabled = true;
+              //  hitBox?.EnableDetection();
                 break;
             case ATP_COLLIDER_OFF:
                 Debug.Log($"공격 끝");
                 AttackCollider.enabled = false;
+              //  hitBox?.DisableDetection();
                 break;
             case ATP_ANIM_END:
                 Debug.Log($"애니메이션 종료 상태 다음상태를 진행합니다.");

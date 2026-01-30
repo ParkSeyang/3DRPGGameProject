@@ -85,9 +85,13 @@ MonoBehaviour:
     parameter: 
   updateEvents:
   - parameter: Input_Start
-    timing: 0.19
+    timing: 0.32
   - parameter: Input_End
-    timing: 0.7
+    timing: 0.52
+  - parameter: Attack_Start
+    timing: 0.3
+  - parameter: Attack_End
+    timing: 0.45
   exitEvent:
     parameter: 
 --- !u!1102 &-7906773631209368598
@@ -161,19 +165,22 @@ AnimatorStateMachine:
     m_Position: {x: 250, y: 120, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 6577003833809796683}
-    m_Position: {x: 30, y: 70, z: 0}
+    m_Position: {x: -200, y: -10, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 7347272946663208248}
-    m_Position: {x: 250, y: -60, z: 0}
+    m_Position: {x: 260, y: -10, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -6649036304103032838}
-    m_Position: {x: 400, y: 50, z: 0}
+    m_Position: {x: 500, y: 0, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -4298357534138874809}
     m_Position: {x: 490.47278, y: 235.90204, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 7843301961323232779}
     m_Position: {x: 490, y: 320, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: 4459904237023258608}
+    m_Position: {x: 20, y: 110, z: 0}
   m_ChildStateMachines:
   - serializedVersion: 1
     m_StateMachine: {fileID: 2227164509293489268}
@@ -186,11 +193,12 @@ AnimatorStateMachine:
   - {fileID: 8640854614617633729}
   - {fileID: 4925236322054521769}
   - {fileID: -2791476790186698988}
+  - {fileID: 2833813775373637266}
   m_EntryTransitions: []
   m_StateMachineTransitions: {}
   m_StateMachineBehaviours: []
-  m_AnyStatePosition: {x: 10, y: 230, z: 0}
-  m_EntryPosition: {x: 50, y: 120, z: 0}
+  m_AnyStatePosition: {x: 50, y: -10, z: 0}
+  m_EntryPosition: {x: -170, y: 310, z: 0}
   m_ExitPosition: {x: 800, y: 120, z: 0}
   m_ParentStateMachinePosition: {x: 800, y: 20, z: 0}
   m_DefaultState: {fileID: -8866753654571002478}
@@ -268,7 +276,7 @@ AnimatorStateTransition:
   m_TransitionDuration: 0.25
   m_TransitionOffset: 0
   m_ExitTime: 0.7580645
-  m_HasExitTime: 1
+  m_HasExitTime: 0
   m_HasFixedDuration: 1
   m_InterruptionSource: 0
   m_OrderedInterruption: 1
@@ -290,9 +298,9 @@ AnimatorStateTransition:
   m_Mute: 0
   m_IsExit: 0
   serializedVersion: 3
-  m_TransitionDuration: 0.16909254
-  m_TransitionOffset: 0.050567195
-  m_ExitTime: 0.7058422
+  m_TransitionDuration: 0.07833105
+  m_TransitionOffset: 0
+  m_ExitTime: 0.35858154
   m_HasExitTime: 1
   m_HasFixedDuration: 1
   m_InterruptionSource: 0
@@ -539,9 +547,13 @@ MonoBehaviour:
     parameter: 
   updateEvents:
   - parameter: Input_Start
-    timing: 0.08
+    timing: 0.402
   - parameter: Input_End
-    timing: 0.35
+    timing: 0.543
+  - parameter: Attack_Start
+    timing: 0.45
+  - parameter: Attack_End
+    timing: 0.56
   exitEvent:
     parameter: 
 --- !u!114 &-3190053072951346551
@@ -560,9 +572,13 @@ MonoBehaviour:
     parameter: 
   updateEvents:
   - parameter: Input_Start
-    timing: 0.1
+    timing: 0.006
   - parameter: Input_End
-    timing: 0.31
+    timing: 0.253
+  - parameter: Attack_Start
+    timing: 0.072
+  - parameter: Attack_End
+    timing: 0.218
   exitEvent:
     parameter: 
 --- !u!206 &-3063069943093298979
@@ -725,7 +741,7 @@ AnimatorStateTransition:
   m_TransitionDuration: 0.25
   m_TransitionOffset: 0
   m_ExitTime: 0.8125
-  m_HasExitTime: 1
+  m_HasExitTime: 0
   m_HasFixedDuration: 1
   m_InterruptionSource: 0
   m_OrderedInterruption: 1
@@ -747,9 +763,9 @@ AnimatorStateTransition:
   m_Mute: 0
   m_IsExit: 0
   serializedVersion: 3
-  m_TransitionDuration: 0.25
+  m_TransitionDuration: 0.0357939
   m_TransitionOffset: 0
-  m_ExitTime: 0.85
+  m_ExitTime: 0.5421726
   m_HasExitTime: 1
   m_HasFixedDuration: 1
   m_InterruptionSource: 0
@@ -762,7 +778,10 @@ AnimatorStateTransition:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: 
-  m_Conditions: []
+  m_Conditions:
+  - m_ConditionMode: 1
+    m_ConditionEvent: IsGuard
+    m_EventTreshold: 0
   m_DstStateMachine: {fileID: 0}
   m_DstState: {fileID: 2668369775874418890}
   m_Solo: 0
@@ -772,7 +791,7 @@ AnimatorStateTransition:
   m_TransitionDuration: 0.25
   m_TransitionOffset: 0
   m_ExitTime: 0.25
-  m_HasExitTime: 1
+  m_HasExitTime: 0
   m_HasFixedDuration: 1
   m_InterruptionSource: 0
   m_OrderedInterruption: 1
@@ -1010,9 +1029,9 @@ AnimatorStateTransition:
   m_Mute: 0
   m_IsExit: 0
   serializedVersion: 3
-  m_TransitionDuration: 0.17550862
-  m_TransitionOffset: 0.047887377
-  m_ExitTime: 0.73899657
+  m_TransitionDuration: 0.11367023
+  m_TransitionOffset: 0
+  m_ExitTime: 0.59728354
   m_HasExitTime: 1
   m_HasFixedDuration: 1
   m_InterruptionSource: 0
@@ -1101,6 +1120,12 @@ AnimatorController:
     m_Controller: {fileID: 9100000}
   - m_Name: IsAttack
     m_Type: 4
+    m_DefaultFloat: 0
+    m_DefaultInt: 0
+    m_DefaultBool: 0
+    m_Controller: {fileID: 9100000}
+  - m_Name: Hit
+    m_Type: 9
     m_DefaultFloat: 0
     m_DefaultInt: 0
     m_DefaultBool: 0
@@ -1217,7 +1242,7 @@ AnimatorStateTransition:
   m_TransitionDuration: 0.25
   m_TransitionOffset: 0
   m_ExitTime: 0.8125
-  m_HasExitTime: 1
+  m_HasExitTime: 0
   m_HasFixedDuration: 1
   m_InterruptionSource: 0
   m_OrderedInterruption: 1
@@ -1318,9 +1343,13 @@ MonoBehaviour:
     parameter: 
   updateEvents:
   - parameter: Input_Start
-    timing: 0.04
+    timing: 0.25
   - parameter: Input_End
-    timing: 0.58
+    timing: 0.48
+  - parameter: Attack_Start
+    timing: 0.35
+  - parameter: Attack_End
+    timing: 0.4
   exitEvent:
     parameter: 
 --- !u!1101 &2627582035307952549
@@ -1376,6 +1405,31 @@ AnimatorState:
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
+--- !u!1101 &2833813775373637266
+AnimatorStateTransition:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: 
+  m_Conditions:
+  - m_ConditionMode: 1
+    m_ConditionEvent: Hit
+    m_EventTreshold: 0
+  m_DstStateMachine: {fileID: 0}
+  m_DstState: {fileID: 4459904237023258608}
+  m_Solo: 0
+  m_Mute: 0
+  m_IsExit: 0
+  serializedVersion: 3
+  m_TransitionDuration: 0.25
+  m_TransitionOffset: 0
+  m_ExitTime: 0.75
+  m_HasExitTime: 0
+  m_HasFixedDuration: 1
+  m_InterruptionSource: 0
+  m_OrderedInterruption: 1
+  m_CanTransitionToSelf: 1
 --- !u!1102 &3446680297632766222
 AnimatorState:
   serializedVersion: 6
@@ -1427,6 +1481,33 @@ AnimatorState:
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
   m_Motion: {fileID: 7400000, guid: 9b8482507c77b8a4ca0b9df3fcd1369e, type: 3}
+  m_Tag: 
+  m_SpeedParameter: 
+  m_MirrorParameter: 
+  m_CycleOffsetParameter: 
+  m_TimeParameter: 
+--- !u!1102 &4459904237023258608
+AnimatorState:
+  serializedVersion: 6
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Damage_Front_Small_ver_A
+  m_Speed: 1
+  m_CycleOffset: 0
+  m_Transitions:
+  - {fileID: 7441601391676292722}
+  m_StateMachineBehaviours: []
+  m_Position: {x: 50, y: 50, z: 0}
+  m_IKOnFeet: 0
+  m_WriteDefaultValues: 1
+  m_Mirror: 0
+  m_SpeedParameterActive: 0
+  m_MirrorParameterActive: 0
+  m_CycleOffsetParameterActive: 0
+  m_TimeParameterActive: 0
+  m_Motion: {fileID: 7400000, guid: 2091ebb37d4500b4c995e8ac413092dd, type: 3}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
@@ -1578,7 +1659,7 @@ AnimatorStateTransition:
   m_TransitionDuration: 0.25
   m_TransitionOffset: 0
   m_ExitTime: 0.75
-  m_HasExitTime: 1
+  m_HasExitTime: 0
   m_HasFixedDuration: 1
   m_InterruptionSource: 0
   m_OrderedInterruption: 1
@@ -1652,9 +1733,13 @@ MonoBehaviour:
     parameter: 
   updateEvents:
   - parameter: Input_Start
-    timing: 0.1
+    timing: 0.028
   - parameter: Input_End
-    timing: 0.22
+    timing: 0.11
+  - parameter: Attack_Start
+    timing: 0.035
+  - parameter: Attack_End
+    timing: 0.071
   exitEvent:
     parameter: 
 --- !u!114 &6435793060847858126
@@ -1676,6 +1761,10 @@ MonoBehaviour:
     timing: 0.1
   - parameter: Input_End
     timing: 0.33
+  - parameter: Attack_Start
+    timing: 0.29
+  - parameter: Attack_End
+    timing: 0.371
   exitEvent:
     parameter: 
 --- !u!1102 &6577003833809796683
@@ -1794,9 +1883,13 @@ MonoBehaviour:
     parameter: 
   updateEvents:
   - parameter: Input_Start
-    timing: 0.15
+    timing: 0.29
   - parameter: Input_End
-    timing: 0.7
+    timing: 0.45
+  - parameter: Attack_Start
+    timing: 0.31
+  - parameter: Attack_End
+    timing: 0.4
   exitEvent:
     parameter: 
 --- !u!1101 &7415711858011129083
@@ -1816,9 +1909,31 @@ AnimatorStateTransition:
   m_Mute: 0
   m_IsExit: 0
   serializedVersion: 3
-  m_TransitionDuration: 0.05938971
-  m_TransitionOffset: 0.052790944
-  m_ExitTime: 0.14608459
+  m_TransitionDuration: 0.07604468
+  m_TransitionOffset: 0
+  m_ExitTime: 0.07733485
+  m_HasExitTime: 1
+  m_HasFixedDuration: 1
+  m_InterruptionSource: 0
+  m_OrderedInterruption: 1
+  m_CanTransitionToSelf: 1
+--- !u!1101 &7441601391676292722
+AnimatorStateTransition:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: 
+  m_Conditions: []
+  m_DstStateMachine: {fileID: 0}
+  m_DstState: {fileID: -8866753654571002478}
+  m_Solo: 0
+  m_Mute: 0
+  m_IsExit: 0
+  serializedVersion: 3
+  m_TransitionDuration: 0.25
+  m_TransitionOffset: 0
+  m_ExitTime: 0.423077
   m_HasExitTime: 1
   m_HasFixedDuration: 1
   m_InterruptionSource: 0

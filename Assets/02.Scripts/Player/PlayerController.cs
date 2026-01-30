@@ -51,7 +51,7 @@ public class PlayerController : MonoBehaviour
        animator.SetFloat(InputX, inputX);
        animator.SetFloat(InputY, inputY);
        
-       if (Input.GetAxis("Horizontal") != 0 || Input.GetAxis("Vertical") != 0)
+       if (inputX != 0 || inputY != 0)
        {
            animator.SetBool(IsMove, true);
        }

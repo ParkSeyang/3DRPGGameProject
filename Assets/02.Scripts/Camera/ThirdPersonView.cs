@@ -23,8 +23,14 @@ public class ThirdPersonView : MonoBehaviour
 
     private void Update()
     {
+        if (Time.timeScale == 0f)
+        {
+            return;
+        }
+        
         UpdateCameraAngle();
         LookAtThePlayer();
+        
     }
 
     private void UpdateCameraAngle()

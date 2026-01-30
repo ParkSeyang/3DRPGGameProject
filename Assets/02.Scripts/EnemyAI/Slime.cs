@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
@@ -13,7 +13,11 @@ public class Slime : MonoBehaviour
     private static readonly int Attack = Animator.StringToHash("Attack");
     private static readonly int Hit = Animator.StringToHash("Hit");
     private static readonly int Dead = Animator.StringToHash("Dead");
+    
+    [Header("Data Settings")]
+    [SerializeField] private int enemyID = 1; // 기본값
     public float MoveSpeed { get; set; } = 3.0f;
+    public int Exp { get; private set; }
 
     [Header("AI 설정")] 
     [SerializeField] private float patrolRadius = 10.0f;
@@ -66,6 +70,8 @@ public class Slime : MonoBehaviour
         Agent = GetComponent<NavMeshAgent>();
         AttackCollider.enabled = false;
 
+        InitializeStat();
+
         States = new Dictionary<Type, SlimeBaseState>();
         States.Add(typeof(SlimeIdleState), new SlimeIdleState());
         States.Add(typeof(SlimePatrolState), new SlimePatrolState());
@@ -97,6 +103,29 @@ public class Slime : MonoBehaviour
     {
         ChangeState<SlimeIdleState>();
     }
+
+    private void InitializeStat()
+    {
+        if (EnemyDataManager.Instance == null)
+        {
+            Debug.LogError("[Slime] EnemyDataManager가 없습니다.");
+            return;
+        }
+
+        var stat = EnemyDataManager.Instance.GetEnemyStat(enemyID);
+        if (stat != null)
+        {
+            Exp = stat.Exp;
+            MoveSpeed = stat.MoveSpeed;
+            
+            Debug.Log($"<color=lime>[Slime Data]</color> {stat.Name} (ID:{stat.ID}) 로드 완료\n" +
+                      $"HP: {stat.HP}, ATK: {stat.ATK}, DEF: {stat.DEF}, Exp: {stat.Exp}, Speed: {stat.MoveSpeed}");
+        }
+        else
+        {
+            Debug.LogError($"[Slime] ID {enemyID} 데이터를 찾을 수 없습니다.");
+        }
+    }
     
     private void Update()
     {
@@ -125,11 +154,11 @@ public class Slime : MonoBehaviour
         {
             if ((CurrentState is SlimeDeadState) == false)
             {
-                var attacker = other.GetComponentInParent<PlayerController>();
-                if (attacker != null)
-                {
-                    SetTarget(attacker.transform);
-                }
+               // var attacker = other.GetComponentInParent<PlayerStatusController>();
+               // if (attacker != null)
+               // {
+               //     SetTarget(attacker.transform);
+               // }
 
                 CurrentHitCount++;
                 Debug.Log($"슬라임이 피격당했다! {CurrentHitCount} / {maxHitCount}");

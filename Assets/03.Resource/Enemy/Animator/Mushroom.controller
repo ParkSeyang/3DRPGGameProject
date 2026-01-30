@@ -116,9 +116,9 @@ MonoBehaviour:
     parameter: 
   updateEvents:
   - parameter: Attack_Collider_On
-    timing: 0.156
+    timing: 0.339
   - parameter: Attack_Collider_Off
-    timing: 0.405
+    timing: 0.509
   - parameter: Attack_End
     timing: 0.95
   exitEvent:

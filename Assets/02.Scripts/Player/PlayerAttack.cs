@@ -42,6 +42,7 @@ public class PlayerAttack : MonoBehaviour
         
         animEventReceiver.OnAnimationTriggerReceived -= OnTriggerAnim;
     }
+    
     private void OnTriggerAnim(string parameter)
     {
         if (parameter.Equals("Input_Start"))
@@ -52,7 +53,14 @@ public class PlayerAttack : MonoBehaviour
         {
             isAttackAble = false;
         }
-        
+        if (parameter.Equals("Attack_Start"))
+        {
+
+        }
+        else if (parameter.Equals("Attack_End"))
+        {
+            
+        }
         Debug.Log(parameter);
     }
 
