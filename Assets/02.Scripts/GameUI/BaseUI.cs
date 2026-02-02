@@ -5,12 +5,9 @@ public abstract class BaseUI : MonoBehaviour
 {
     public abstract UIType UIType { get; }
 
-    protected void Awake()
+    protected virtual void Awake()
     {
-        if (UIManager.Instance == null)
-        {
-            UIManager.Instance.RegisterUI(this);
-        }
+        UIManager.Instance.RegisterUI(this);
     }
 
     public virtual void Open()

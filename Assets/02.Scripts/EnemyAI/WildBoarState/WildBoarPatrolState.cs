@@ -18,12 +18,12 @@ public class WildBoarPatrolState : WildBoarBaseState
     {
         startPos = WildBoar.transform.position;
         targetPos = CalculatePatrolDestination();
+        WildBoarAnimator.SetTrigger(Walk);
         
         Agent.speed = WildBoar.MoveSpeed;
         Agent.SetDestination(targetPos);
         Agent.isStopped = false;
         
-        WildBoarAnimator.SetTrigger(Walk);
     }
 
     public override void UpdateState()

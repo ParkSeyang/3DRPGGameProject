@@ -5,15 +5,20 @@ public class SlimeAttackState : SlimeBaseState
     private static readonly int Attack = Animator.StringToHash("Attack");
     
     private const string ATP_COLLIDER_ON = "Attack_Collider_On";
-    private const string ATP_COLLIDER_OFF = "Attack_Collider_Off";
-    private const string ATP_ANIM_END = "Attack_End";
-
-    private const float ATTACK_RANGE_TOLERANCE = 0.2f;
-    
+        private const string ATP_COLLIDER_OFF = "Attack_Collider_Off";
+        private const string ATP_ANIM_END = "Attack_End";
+        
+        // 공격 상태 유지 범위 확대
+        private const float ATTACK_RANGE_TOLERANCE = 1.0f;
+        private HitBox hitBox;
     
     public override void Initialize(StateControllerParameter parameter)
     {
         base.Initialize(parameter);
+        if (AttackCollider != null)
+        {
+            hitBox = AttackCollider.GetComponent<HitBox>();
+        }
     }
 
 
@@ -27,26 +32,14 @@ public class SlimeAttackState : SlimeBaseState
 
         if (Slime.Target != null)
         {
-            // 방향 구하는법 
-            // (플레이어의 위치 - 몬스터의 위치) 해주고 정규화 해준다.
-           // Vector3 direction = (Slime.Target.position - Slime.transform.position).normalized;
-           // direction.y = 0;
-           // if (direction != Vector3.zero)
-           // {
-           //     Slime.transform.rotation = Quaternion.LookRotation(direction);
-           // }
            Slime.transform.rotation = 
                Slime.transform.FlatRotationTo(Slime.Target);
-
         }
         
-        AttackCollider.enabled = false;
+        // AttackCollider.enabled = false; // HitBox 제어로 대체
         
         SlimeAnimator.SetTrigger(Attack);
         AnimEventReceiver.OnAnimationTriggerReceived += OnTriggeredEvent;
-        
-        
-
     }
 
     public override void UpdateState()
@@ -59,7 +52,8 @@ public class SlimeAttackState : SlimeBaseState
 
     public override void ExitState()
     {
-        AttackCollider.enabled = false;
+        // AttackCollider.enabled = false;
+        hitBox?.DisableDetection();
         AnimEventReceiver.OnAnimationTriggerReceived -= OnTriggeredEvent;
     }
 
@@ -69,11 +63,11 @@ public class SlimeAttackState : SlimeBaseState
         {
             case ATP_COLLIDER_ON:
                 Debug.Log($"공격 시작");
-                AttackCollider.enabled = true;
+                hitBox?.EnableDetection();
                 break;
             case ATP_COLLIDER_OFF:
                 Debug.Log($"공격 끝");
-                AttackCollider.enabled = false;
+                hitBox?.DisableDetection();
                 break;
             case ATP_ANIM_END:
                 Debug.Log($"애니메이션 종료 상태 다음상태를 진행합니다.");

@@ -7,11 +7,21 @@ public class PlayerAttack : MonoBehaviour
     private static readonly int IsAttack = Animator.StringToHash("IsAttack");
     private Animator animator;
     AnimEventReceiver animEventReceiver;
+    
+    [SerializeField] private Collider weaponCollider;
+    private HitBox hitBox;
+    
     private bool isAttackAble = false;
     private void Awake()
     {
         animator = GetComponent<Animator>();
         animEventReceiver = GetComponent<AnimEventReceiver>();
+        
+        if (weaponCollider != null)
+        {
+            hitBox = weaponCollider.GetComponent<HitBox>();
+        }
+        
         isAttackAble = true;
     }
     
@@ -53,13 +63,14 @@ public class PlayerAttack : MonoBehaviour
         {
             isAttackAble = false;
         }
+        
         if (parameter.Equals("Attack_Start"))
         {
-
+            hitBox?.EnableDetection();
         }
         else if (parameter.Equals("Attack_End"))
         {
-            
+            hitBox?.DisableDetection();
         }
         Debug.Log(parameter);
     }

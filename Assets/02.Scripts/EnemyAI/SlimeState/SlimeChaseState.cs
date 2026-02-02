@@ -29,16 +29,22 @@ public class SlimeChaseState : SlimeBaseState
             Slime.ChangeState<SlimeIdleState>();
             return;
         }
+
+        // 거리 체크를 이동 명령보다 먼저 수행
+        float distance = Slime.transform.FlatDistanceTo(Slime.Target);
+
+        if (distance <= Agent.stoppingDistance + 0.2f)
+        {
+            Agent.isStopped = true;
+            Agent.velocity = Vector3.zero;
+            Agent.ResetPath();
+            
+            Slime.ChangeState<SlimeAttackState>();
+            return;
+        }
+
         // 적을 쫒는 로직
         Agent.SetDestination(Slime.Target.position);
-
-        if (Agent.remainingDistance <= Agent.stoppingDistance)
-        {
-            if (Agent.pathPending == false)
-            {
-                Slime.ChangeState<SlimeAttackState>();
-            }
-        }
     }
 
     public override void ExitState()

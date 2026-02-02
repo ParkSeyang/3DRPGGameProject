@@ -8,17 +8,28 @@ using Random = UnityEngine.Random;
 using UnityEditor;
 #endif
 
-public class Mushroom : MonoBehaviour
+public class Mushroom : MonoBehaviour, ICombatAgent
 {
     [Header("Data Settings")]
     [SerializeField] private int enemyID = 2; // TSV 파일의 ID와 일치해야 함
     public int Exp { get; private set; }
     public int DropGold { get; private set; } = 50;
-    public event Action OnDead;
-
-    public void TriggerOnDeadEvent() => OnDead?.Invoke();
-
-    public float MoveSpeed { get; set; } = 5.0f;
+    
+    public float MaxHP { get; private set; }
+    public float CurrentHP { get; private set; }
+        public float ATK { get; private set; }
+        
+        private bool isDead = false;
+        public event Action OnDead;
+    
+        public void TriggerOnDeadEvent()
+        {
+            if (isDead) return;
+            isDead = true;
+            OnDead?.Invoke();
+        }
+    
+        public float MoveSpeed { get; set; } = 5.0f;
 
     [Header("AI 설정")] 
     [SerializeField] private float patrolRadius = 12.0f;
@@ -72,6 +83,7 @@ public class Mushroom : MonoBehaviour
         AttackCollider.enabled = false;
 
         InitializeStat();
+        InitializeCombat();
         
         States = new Dictionary<Type, BaseState>();
         States.Add(typeof(IdleState), new IdleState());
@@ -97,32 +109,39 @@ public class Mushroom : MonoBehaviour
         {
             state.Initialize(param);
         }
+    }
 
-       // var hitBox = AttackCollider.GetComponent<HitBox>();
+    private void InitializeCombat()
+    {
+        // HitBox 초기화
+        if (AttackCollider != null)
+        {
+            var hitBox = AttackCollider.GetComponent<HitBox>();
+            if (hitBox != null)
+            {
+                hitBox.Initialize(this);
+            }
+        }
 
-       // if (hitBox != null)
-       // {
-       //     hitBox.Initialize(this);
-       // }
-       // else
-       // {
-       //     Debug.Log($"{name}의 AttackCollider에 HitBox 컴포넌트가 없습니다!");
-       // }
-
+        // HurtBox 초기화 (자식이나 본인에게 있는 모든 HurtBox)
+        var hurtBoxes = GetComponentsInChildren<HurtBox>();
+        foreach (var hb in hurtBoxes)
+        {
+            hb.Initialize(this);
+        }
     }
 
     private void Start()
     {
         OnDead += () =>
         {
-           
+            if (PlayerStatusController.Instance != null)
+            {
+                PlayerStatusController.Instance.AddExp(Exp);
+                PlayerStatusController.Instance.AddGold(DropGold);
+                Debug.Log($"[Mushroom] 처치 보상 지급: EXP {Exp}, Gold {DropGold}");
+            }
         };
-
-       // var hurtBoxes = GetComponentsInChildren<HurtBox>();
-       // foreach (var hb in hurtBoxes)
-       // {
-       //     hb.Initialize(this);
-       // }
 
         ChangeState<IdleState>();
     }
@@ -140,6 +159,9 @@ public class Mushroom : MonoBehaviour
         {
             Exp = stat.Exp;
             MoveSpeed = stat.MoveSpeed;
+            MaxHP = stat.HP;
+            CurrentHP = stat.HP;
+            ATK = stat.ATK;
             
             Debug.Log($"<color=yellow>[Mushroom Data]</color> {stat.Name} (ID:{stat.ID}) 로드 완료\n" +
                       $"HP: {stat.HP}, ATK: {stat.ATK}, DEF: {stat.DEF}, Exp: {stat.Exp}, Speed: {stat.MoveSpeed}");
@@ -170,33 +192,39 @@ public class Mushroom : MonoBehaviour
         Debug.Log($"{prevState?.GetType().Name} changed to {CurrentState.GetType().Name}");
     }
 
-    
-    private void OnTriggerEnter(Collider other)
-    {
-        
-    }
+    // --- ICombatAgent Implementation ---
 
-    public void TakeDamage(float damage)
+    public void TakeDamage(float damage, HitInfo hitInfo)
     {
-        CurrentHitCount++;
+        CurrentHP -= damage;
+        CurrentHitCount++; // 기존 로직 유지 (필요시 제거 가능)
         
-        Debug.Log($"[Mushroom] 피격! 데미지 : {damage}");
+        Debug.Log($"[Mushroom] 피격! 데미지 : {damage}, 남은 HP: {CurrentHP}");
 
-        if (CurrentHitCount >= maxHitCount)
+        if (CurrentHP <= 0)
         {
             ChangeState<DeadState>();
         }
         else
         {
+            // 슈퍼아머 체크 로직이 있다면 여기서 분기 처리
             ChangeState<HitState>();
         }
-
     }
 
-   // public void OnHitDetected(HitInfo hitInfo)
-   // {
-   //     // 몬스터가 플레이어를 때렸을떄 로직 작성
-   // }
+    public void OnHitDetected(HitInfo hitInfo)
+    {
+        // 내가 때린 대상에게 데미지를 준다
+        CombatEvent combatEvent = new CombatEvent();
+        combatEvent.Sender = this;
+        combatEvent.Receiver = hitInfo.receiver;
+        combatEvent.Damage = ATK; // ATK를 기반으로 데미지 설정
+        combatEvent.HitInfo = hitInfo;
+        
+        CombatSystem.Instance.AddCombatEvent(combatEvent);
+        
+        Debug.Log($"[Mushroom] 공격 적중! 대상: {hitInfo.receiver}");
+    }
     
     
 #if UNITY_EDITOR

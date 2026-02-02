@@ -50,11 +50,15 @@ namespace Study_Camera.Study_StatePattern.UsingMono
             CurrentState.EnterState();
             Debug.Log($"{prevState?.GetType().Name} changed to {CurrentState.GetType().Name}");
         }
-
         
-        public void TakeDamage(int damage)
+        public void TakeDamage(float damage)
         {
-            
+            throw new NotImplementedException();
+        }
+
+        public void TakeDamage(float damage, HitInfo hitInfo)
+        {
+            throw new NotImplementedException();
         }
 
         public void OnHitDetected(HitInfo hitInfo)
@@ -65,7 +69,7 @@ namespace Study_Camera.Study_StatePattern.UsingMono
             @event.Damage = hitInfo.parameter == 2 ? 100 : 10;
             @event.HitInfo = hitInfo;
             
-            CombatSystem.CombatSystem.Instance.AddCombatEvent(@event);
+           // CombatSystem.CombatSystem.Instance.AddCombatEvent(@event);
         }
     }
 }

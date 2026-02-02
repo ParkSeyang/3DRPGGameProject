@@ -7,7 +7,7 @@ using UnityEditor;
 #endif
 
 
-public class WildBoar : MonoBehaviour
+public class WildBoar : MonoBehaviour, ICombatAgent
 {
     private static readonly int Idle = Animator.StringToHash("Idle");
     private static readonly int Walk = Animator.StringToHash("Walk");
@@ -18,8 +18,23 @@ public class WildBoar : MonoBehaviour
     
     [Header("Data Settings")]
     [SerializeField] private int enemyID = 3; // 기본값
+    
     public float MoveSpeed { get; set; } = 10.0f;
     public int Exp { get; private set; }
+    
+    public int DropGold { get; private set; } = 100;
+    public float MaxHP { get; private set; }
+    public float CurrentHP { get; private set; }
+    public float ATK { get; private set; }
+    
+    private bool isDead = false;
+    public event Action OnDead;
+    public void TriggerOnDeadEvent()
+    {
+        if (isDead) return;
+        isDead = true;
+        OnDead?.Invoke();
+    }
 
     [Header("AI 설정")] 
     [SerializeField] private float patrolRadius = 15.0f;
@@ -73,6 +88,7 @@ public class WildBoar : MonoBehaviour
         AttackCollider.enabled = false;
 
         InitializeStat();
+        InitializeCombat();
 
         States = new Dictionary<Type, WildBoarBaseState>();
         States.Add(typeof(WildBoarIdleState), new WildBoarIdleState());
@@ -101,8 +117,38 @@ public class WildBoar : MonoBehaviour
         
     }
 
+    private void InitializeCombat()
+    {
+        // HitBox 초기화
+        if (AttackCollider != null)
+        {
+            var hitBox = AttackCollider.GetComponent<HitBox>();
+            if (hitBox != null)
+            {
+                hitBox.Initialize(this);
+            }
+        }
+
+        // HurtBox 초기화
+        var hurtBoxes = GetComponentsInChildren<HurtBox>();
+        foreach (var hb in hurtBoxes)
+        {
+            hb.Initialize(this);
+        }
+    }
+
     private void Start()
     {
+        OnDead += () =>
+        {
+            if (PlayerStatusController.Instance != null)
+            {
+                PlayerStatusController.Instance.AddExp(Exp);
+                PlayerStatusController.Instance.AddGold(DropGold);
+                Debug.Log($"[WildBoar] 처치 보상 지급: EXP {Exp}, Gold {DropGold}");
+            }
+        };
+        
         ChangeState<WildBoarIdleState>();
     }
 
@@ -119,6 +165,9 @@ public class WildBoar : MonoBehaviour
         {
             Exp = stat.Exp;
             MoveSpeed = stat.MoveSpeed;
+            MaxHP = stat.HP;
+            CurrentHP = stat.HP;
+            ATK = stat.ATK;
             
             Debug.Log($"<color=orange>[WildBoar Data]</color> {stat.Name} (ID:{stat.ID}) 로드 완료\n" +
                       $"HP: {stat.HP}, ATK: {stat.ATK}, DEF: {stat.DEF}, Exp: {stat.Exp}, Speed: {stat.MoveSpeed}");
@@ -149,33 +198,37 @@ public class WildBoar : MonoBehaviour
         Debug.Log($"{prevState?.GetType().Name} changed to {CurrentState.GetType().Name}");
     }
 
-    
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.gameObject.CompareTag("Weapon"))
-        {
-            if ((CurrentState is WildBoarDeadState) == false)
-            {
-               // var attacker = other.GetComponentInParent<PlayerController>();
-               // if (attacker != null)
-               // {
-               //     SetTarget(attacker.transform);
-               // }
+    // --- ICombatAgent Implementation ---
 
-                CurrentHitCount++;
-                Debug.Log($"돼지이 피격당했다! {CurrentHitCount} / {maxHitCount}");
-                if (CurrentHitCount >= maxHitCount)
-                {
-                    ChangeState<WildBoarDeadState>();
-                }
-                else
-                {
-                    ChangeState<WildBoarHitState>();
-                }
-            }
+    public void TakeDamage(float damage, HitInfo hitInfo)
+    {
+        CurrentHP -= damage;
+        CurrentHitCount++;
+        
+        Debug.Log($"[WildBoar] 피격! 데미지 : {damage}, 남은 HP: {CurrentHP}");
+
+        if (CurrentHP <= 0)
+        {
+            ChangeState<WildBoarDeadState>();
+        }
+        else
+        {
+            ChangeState<WildBoarHitState>();
         }
     }
 
+    public void OnHitDetected(HitInfo hitInfo)
+    {
+        CombatEvent combatEvent = new CombatEvent();
+        combatEvent.Sender = this;
+        combatEvent.Receiver = hitInfo.receiver;
+        combatEvent.Damage = ATK;
+        combatEvent.HitInfo = hitInfo;
+        
+        CombatSystem.Instance.AddCombatEvent(combatEvent);
+        
+        Debug.Log($"[WildBoar] 공격 적중! 대상: {hitInfo.receiver}");
+    }
     
     
     

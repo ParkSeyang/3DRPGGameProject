@@ -40,7 +40,7 @@ namespace Study_Camera.Study_ObjectPool
                     if (combatSystem.HasHitTarget(hitInfo.collider))
                     {
                         HitInfo hitTargetInfo = new HitInfo();
-                        hitTargetInfo.hitTarget = combatSystem.GetHitTarget(hitInfo.collider);
+                       // hitTargetInfo.hitTarget = combatSystem.GetHitTarget(hitInfo.collider);
                         hitTargetInfo.parameter = 1; 
                         hitTargetInfo.receiver = hitTargetInfo.hitTarget.Owner;
                         hitTargetInfo.gameObject = hitInfo.collider.gameObject;
@@ -52,7 +52,7 @@ namespace Study_Camera.Study_ObjectPool
                         @event.Damage = 10;
                         @event.HitInfo = hitTargetInfo;
             
-                        CombatSystem.CombatSystem.Instance.AddCombatEvent(@event);
+                       // CombatSystem.CombatSystem.Instance.AddCombatEvent(@event);
                     }
                 }
             }
@@ -69,7 +69,7 @@ namespace Study_Camera.Study_ObjectPool
                     if (combatSystem.HasHitTarget(hitInfo2.collider))
                     {
                         HitInfo hitTargetInfo = new HitInfo();
-                        hitTargetInfo.hitTarget = combatSystem.GetHitTarget(hitInfo2.collider);
+                       // hitTargetInfo.hitTarget = combatSystem.GetHitTarget(hitInfo2.collider);
                         hitTargetInfo.parameter = 2;
                         hitTargetInfo.receiver = hitTargetInfo.hitTarget.Owner;
                         hitTargetInfo.gameObject = hitInfo2.collider.gameObject;
@@ -81,7 +81,7 @@ namespace Study_Camera.Study_ObjectPool
                         @event.Damage = 10;
                         @event.HitInfo = hitTargetInfo;
 
-                        CombatSystem.CombatSystem.Instance.AddCombatEvent(@event);
+                       // CombatSystem.CombatSystem.Instance.AddCombatEvent(@event);
                     }
                 }
             }

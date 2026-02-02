@@ -56,7 +56,7 @@ public abstract class WildBoarBaseState
 
         if (angleToTarget > WildBoar.DetectionAngle / 2.0f)
         {
-            Debug.Log($"감지 실패 : 시야각에서 벗어남 {angleToTarget:F1}");
+           // Debug.Log($"감지 실패 : 시야각에서 벗어남 {angleToTarget:F1}");
             return false;
         }
 

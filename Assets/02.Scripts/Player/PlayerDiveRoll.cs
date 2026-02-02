@@ -23,47 +23,18 @@ public class PlayerDiveRoll : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Space)&& isDiveRoll == false)
         {
+            hurtCollider.enabled = false;
             animator.SetBool(DiveRoll, true);
+            isDiveRoll = true;
+        }
+        else
+        {
+            hurtCollider.enabled = true;
+            animator.SetBool(DiveRoll, false);
+            isDiveRoll = false;
         }
      
     }
-    private void OnEnable()
-    {
-        
-        animEventReceiver.OnAnimationTriggerReceived += OnTriggerAnim;
-    }
-
-    private void OnDisable()
-    {
-        animEventReceiver.OnAnimationTriggerReceived -= OnTriggerAnim;
-    }
-    
-    private void OnTriggerAnim(string parameter)
-    {
-        if (parameter.Equals("Input_Start"))
-        {
-            isDiveRoll = true;
-        }
-        else if(parameter.Equals("Input_End"))
-        {
-            isDiveRoll = false;
-            animator.SetBool(DiveRoll, false);
-        }
-        
-        if (parameter.Equals("Invincibility_Start"))
-        {
-            hurtCollider.enabled = false;
-        }
-        else if (parameter.Equals("Invincibility_End"))
-        {
-            hurtCollider.enabled = true;
-        }
-
-       
-
-        Debug.Log(parameter);
-    }
-
-    
+  
     
 }

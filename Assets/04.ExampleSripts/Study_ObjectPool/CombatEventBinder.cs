@@ -6,12 +6,12 @@ namespace Study_Camera.Study_ObjectPool
     {
         public void Enable()
         {
-            CombatSystem.CombatSystem.Instance.Subscribe.OnSomeoneTakeDamage += OnSomeoneTakeDamage;
+          //  CombatSystem.CombatSystem.Instance.Subscribe.OnSomeoneTakeDamage += OnSomeoneTakeDamage;
         }
 
         public void Disable()
         {
-            CombatSystem.CombatSystem.Instance.Subscribe.OnSomeoneTakeDamage -= OnSomeoneTakeDamage;
+         //   CombatSystem.CombatSystem.Instance.Subscribe.OnSomeoneTakeDamage -= OnSomeoneTakeDamage;
         }
         
         private void OnSomeoneTakeDamage(CombatEvent combatEvent)

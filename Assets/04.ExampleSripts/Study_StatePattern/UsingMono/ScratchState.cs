@@ -15,7 +15,7 @@ namespace Study_Camera.Study_StatePattern.UsingMono
         protected override void Awake()
         {
             base.Awake();
-            detector.Initialize(BossAlfa);
+           // detector.Initialize(BossAlfa);
         }
 
         public override void EnterState()

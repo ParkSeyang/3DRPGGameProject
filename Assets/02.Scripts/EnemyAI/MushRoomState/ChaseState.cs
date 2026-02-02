@@ -30,16 +30,22 @@ public class ChaseState : BaseState
             MushRoom.ChangeState<IdleState>();
             return;
         }
+
+        // 거리 체크를 이동 명령보다 먼저 수행
+        float distance = MushRoom.transform.FlatDistanceTo(MushRoom.Target);
+
+        if (distance <= Agent.stoppingDistance + 0.2f)
+        {
+            Agent.isStopped = true;
+            Agent.velocity = Vector3.zero;
+            Agent.ResetPath(); // 경로 초기화로 완전 정지 보장
+            
+            MushRoom.ChangeState<AttackState>();
+            return;
+        }
+
         // 적을 쫒는 로직
         Agent.SetDestination(MushRoom.Target.position);
-
-        if (Agent.remainingDistance <= Agent.stoppingDistance)
-        {
-            if (Agent.pathPending == false)
-            {
-                MushRoom.ChangeState<AttackState>();
-            }
-        }
     }
 
     public override void ExitState()

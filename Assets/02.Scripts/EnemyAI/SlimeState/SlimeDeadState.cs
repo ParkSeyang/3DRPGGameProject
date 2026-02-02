@@ -31,6 +31,8 @@ public class SlimeDeadState : SlimeBaseState
         AttackCollider.enabled = false;
         
         SlimeAnimator.SetTrigger(Dead);
+        
+        Slime.TriggerOnDeadEvent();
 
         Debug.Log($"{Slime.name}이 {Slime.CurrentHitCount}번 맞고 쓰러졌음");
     }

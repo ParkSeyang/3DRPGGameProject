@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class PlayerStatusController : SingletonBase<PlayerStatusController>
+public class PlayerStatusController : SingletonBase<PlayerStatusController>, ICombatAgent
 {
     private Player player;
 
@@ -12,6 +12,90 @@ public class PlayerStatusController : SingletonBase<PlayerStatusController>
         {
             Debug.LogError("[PlayerStatusController] Player 인스턴스를 찾을 수 없습니다.");
         }
+        
+        InitializeCombat();
+    }
+
+    private void InitializeCombat()
+    {
+        if (player == null) return;
+
+        // Player 오브젝트 하위의 모든 HitBox와 HurtBox를 찾아 초기화
+        // PlayerStatusController가 전투의 주체가 됨
+        var hitBoxes = player.GetComponentsInChildren<HitBox>(true);
+        foreach (var hb in hitBoxes)
+        {
+            hb.Initialize(this);
+        }
+
+        var hurtBoxes = player.GetComponentsInChildren<HurtBox>(true);
+        foreach (var hb in hurtBoxes)
+        {
+            hb.Initialize(this);
+        }
+        
+        Debug.Log("[PlayerStatusController] 전투 컴포넌트 초기화 완료");
+    }
+
+    // --- ICombatAgent Implementation ---
+
+    public void TakeDamage(float damage, HitInfo hitInfo)
+    {
+        if (player == null) return;
+
+        float finalDamage = damage;
+
+        // 가드 판정 확인 (Player 오브젝트에 있는 PlayerGuard 컴포넌트 참조)
+        var playerGuard = player.GetComponent<PlayerGuard>();
+        
+        if (playerGuard != null && hitInfo.hitTarget != null)
+        {
+            // 맞은 콜라이더가 가드 콜라이더인지 확인
+            if (playerGuard.IsGuardSuccess(hitInfo.hitTarget.Collider))
+            {
+                finalDamage *= 0.5f; // 50% 데미지 감소
+                Debug.Log("<color=blue>[Player] 가드 성공! 데미지 50% 경감</color>");
+                
+                // 가드 성공 시 이펙트/애니메이션 등은 PlayerGuard 혹은 Animator에서 처리 권장
+            }
+        }
+
+        // 방어력 계산
+        float defense = player.DEF + player.BonusDEF;
+        finalDamage = Mathf.Max(1f, finalDamage - defense);
+        
+        // 체력 적용
+        player.SetHP(player.HP - finalDamage);
+        
+        Debug.Log($"[PlayerStatusController] 피격! 데미지: {finalDamage}, 남은 HP: {player.HP}");
+
+        if (player.HP <= 0)
+        {
+            // 사망 처리
+            player.GetComponent<Animator>()?.SetTrigger("Dead");
+            HandleDeathPenalty();
+        }
+        else
+        {
+            // 가드가 아닐 때만 피격 모션 재생 등
+            player.GetComponent<Animator>()?.SetTrigger("Hit");
+        }
+    }
+
+    public void OnHitDetected(HitInfo hitInfo)
+    {
+        if (player == null) return;
+
+        CombatEvent combatEvent = new CombatEvent();
+        combatEvent.Sender = this;
+        combatEvent.Receiver = hitInfo.receiver;
+        // 데미지 계산
+        combatEvent.Damage = player.ATK + player.BonusATK;
+        combatEvent.HitInfo = hitInfo;
+
+        CombatSystem.Instance.AddCombatEvent(combatEvent);
+        
+        Debug.Log($"[PlayerStatusController] 공격 적중! 대상: {hitInfo.receiver}, 데미지: {combatEvent.Damage}");
     }
 
     // 경험치 획득 및 레벨업 체크
@@ -63,5 +147,18 @@ public class PlayerStatusController : SingletonBase<PlayerStatusController>
         player.AddGold(-penalty); // 음수 값을 더해서 차감
 
         Debug.Log($"[Death] 사망 페널티: {penalty}G 소실");
+    }
+
+    public void ApplySaveData(UserSaveData data)
+    {
+        if (player == null || data == null) return;
+
+        // 1. 위치 적용
+        player.transform.position = data.GetPosition();
+
+        // 2. 스탯 적용
+        player.ApplyStatData(data.playerStat);
+
+        Debug.Log("[PlayerStatusController] 세이브 데이터가 월드에 적용되었습니다.");
     }
 }

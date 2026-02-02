@@ -31,6 +31,8 @@ public class WildBoarDeadState : WildBoarBaseState
         AttackCollider.enabled = false;
         
         WildBoarAnimator.SetTrigger(Dead);
+        
+        WildBoar.TriggerOnDeadEvent();
 
         Debug.Log($"{WildBoar.name}이 {WildBoar.CurrentHitCount}번 맞고 쓰러졌음");
     }

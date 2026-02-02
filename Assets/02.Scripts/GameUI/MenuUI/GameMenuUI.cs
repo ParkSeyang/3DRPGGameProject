@@ -22,8 +22,10 @@ namespace ParkSeyang
 
         public override UIType UIType => UIType.Menu;
 
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake(); // UIManager 등록
+
             // 버튼 리스너 등록 - 본문 표현식 활용
             resumeButton?.onClick.AddListener(OnResumeButtonClicked);
             saveButton?.onClick.AddListener(() => StartCoroutine(SaveProcessRoutine()));
@@ -36,28 +38,22 @@ namespace ParkSeyang
             }
         }
 
-        private void Start()
+        public override void Open()
         {
-            // 플레이어 컨트롤러 찾기 (씬 내에 존재한다고 가정)
-            playerController = FindFirstObjectByType<PlayerController>();
+            base.Open();
+            if (menuPanel != null) menuPanel.SetActive(true);
         }
 
-        private void Update()
+        public override void Close()
         {
-            // ESC 키 입력 시 메뉴 토글
-            if (Input.GetKeyDown(KeyCode.Escape))
-            {
-                ToggleMenu();
-            }
+            base.Close();
+            if (menuPanel != null) menuPanel.SetActive(false);
         }
 
         private void OnResumeButtonClicked()
         {
-            // Resume 버튼은 무조건 메뉴를 닫는 역할
-            if (isMenuOpen)
-            {
-                ToggleMenu();
-            }
+            // UIManager를 통해 모든 팝업을 닫고 게임으로 복귀
+            UIManager.Instance.CloseAllPopup();
         }
 
         private void ToggleMenu()
@@ -106,18 +102,14 @@ namespace ParkSeyang
 
             Debug.Log("[GameMenu] 저장을 시작합니다...");
             
-            // 1. 플레이어 데이터 저장 (위치 포함)
-            // Player가 싱글톤이므로 직접 접근하여 위치를 가져옵니다.
+            // 1. 데이터 추출
             Vector3 currentPos = Player.Instance != null ? Player.Instance.transform.position : Vector3.zero;
-           // DataManager.Instance.SaveUserData(currentPos);
+            PlayerStat currentStat = Player.Instance != null ? Player.Instance.GetCurrentStatData() : null;
 
-            // 2. 스킬 데이터 저장
-          //  if (SkillDataManager.IsInitialized)
-            {
-           //     SkillDataManager.Instance.SaveSkillData();
-            }
+            // 2. 저장 실행
+            DataManager.Instance.SaveUserData(currentPos, currentStat);
 
-            yield return null; // 한 프레임 대기 (필요 시 연출 추가 가능)
+            yield return null; // 한 프레임 대기
             
             Debug.Log("[GameMenu] 저장 완료");
         }
@@ -128,30 +120,13 @@ namespace ParkSeyang
 
             Debug.Log("[GameMenu] 로드를 시작합니다...");
             
-            // 1. 플레이어 데이터 로드 및 적용
-          //  var data = DataManager.Instance.LoadUserData();
-         //   if (data != null)
+            // 1. 데이터 로드
+            var data = DataManager.Instance.LoadUserData();
+            
+            // 2. 데이터 적용
+            if (data != null && PlayerStatusController.IsInitialized)
             {
-                // StatusController에 데이터 적용 요청 (스탯, 레벨 등)
-            //    if (PlayerStatusController.IsInitialized)
-                {
-              //      PlayerStatusController.Instance.ApplySaveData(data);
-                }
-
-                // Player 싱글톤에 위치 적용
-                if (Player.Instance != null)
-                {
-             //       Player.Instance.transform.position = data.GetPosition();
-                }
-            }
-
-            // 2. 스킬 데이터 로드
-        //    if (SkillDataManager.IsInitialized)
-            {
-          //      SkillDataManager.Instance.LoadSkillData();
-                
-                // TODO: 스킬 데이터 로드 후 패시브 효과 재적용 등의 후처리 로직이 필요할 수 있음
-                // SkillTreeSystem.Instance.RefreshPassiveEffects(); 
+                PlayerStatusController.Instance.ApplySaveData(data);
             }
 
             Debug.Log("[GameMenu] 로드 완료");
