@@ -1,6 +1,5 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
-
 
 public class UIManager : SingletonBase<UIManager>
 {
@@ -13,115 +12,151 @@ public class UIManager : SingletonBase<UIManager>
         if (uiDic.ContainsKey(ui.UIType) == false)
         {
             uiDic.Add(ui.UIType, ui);
-            
-            // HUD는 닫지 않고 유지, 나머지 팝업들은 닫기
-            if (ui.UIType != UIType.HUD)
-            {
-                ui.Close();
-            }
-            
             Debug.Log($"[UIManager] {ui.UIType} 등록됨");
         }
     }
 
+    protected override void OnInitialize()
+    {
+        // 씬 내의 모든 BaseUI(비활성 포함) 검색 및 등록
+        BaseUI[] allUIs = FindObjectsOfType<BaseUI>(true);
+        foreach (var ui in allUIs)
+        {
+            RegisterUI(ui);
+        }
+
+        // 초기 상태: HUD와 QuickSlot만 켜고 나머지는 끈다
+        foreach (var pair in uiDic)
+        {
+            if (pair.Key == UIType.HUD || pair.Key == UIType.QuickSlot)
+            {
+                pair.Value.Open();
+            }
+            else
+            {
+                pair.Value.Close();
+            }
+        }
+        
+        RefreshUIState();
+    }
+
     private void Start()
     {
-        // 게임 시작 시 초기화: HUD만 켜고 나머지는 모두 닫기
-        CloseAllPopup();
+        if (uiDic.Count == 0)
+        {
+            OnInitialize();
+        }
     }
 
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            if (IsPopupOpen)
-            {
-                CloseAllPopup();
-            }
-            else
-            {
-                ToggleUI(UIType.Menu);
-            }
+            if (IsPopupOpen) CloseAllPopup();
+            else ToggleUI(UIType.Menu);
         }
 
-        if (Input.GetKeyDown(KeyCode.K))
-        {
-            ToggleUI(UIType.Skill);
-        }
-
-        if (Input.GetKeyDown(KeyCode.I))
-        {
-            ToggleUI(UIType.Inventory);
-        }
+        if (Input.GetKeyDown(KeyCode.K)) ToggleUI(UIType.Skill);
+        if (Input.GetKeyDown(KeyCode.I)) ToggleUI(UIType.Inventory);
     }
 
     public void ToggleUI(UIType uiType)
     {
         if (uiDic.TryGetValue(uiType, out BaseUI targetUI) == false)
         {
+            Debug.LogWarning($"[UIManager] {uiType} UI를 찾을 수 없습니다. 등록 여부를 확인하세요.");
             return;
         }
 
-        // HUD는 토글 대상이 아님 (항상 켜져있거나 다른 UI에 의해 제어됨)
-        if (uiType == UIType.HUD) return;
-
+        // 현재 켜져 있으면 끄고, 꺼져 있으면 연다
         if (targetUI.gameObject.activeSelf)
         {
             targetUI.Close();
-            IsPopupOpen = false;
-            SetControlState(true);
-            
-            // 팝업이 닫히면 HUD 다시 켜기
-            if (uiDic.TryGetValue(UIType.HUD, out BaseUI hud))
-            {
-                hud.Open();
-            }
+            // 인벤토리를 닫을 때 장비창도 같이 닫음
+            if (uiType == UIType.Inventory) SetUIActive(UIType.Equip, false);
         }
         else
         {
-            CloseAllPopup();
+            // 인벤토리나 스킬창을 열 때 기존의 다른 팝업들은 닫는다 (선택 사항)
+            CloseAllPopup(); 
+            
             targetUI.Open();
-            IsPopupOpen = true;
-
-            // 팝업이 열리면 HUD 끄기
-            if (uiDic.TryGetValue(UIType.HUD, out BaseUI hud))
-            {
-                hud.Close();
-            }
-
-            if (uiType == UIType.Menu || uiType == UIType.Inventory)
-            {
-                // 인벤토리 열 때 시간은 멈추지 않음 (기획에 따라 다름, 여기선 메뉴만 멈춤)
-                if(uiType == UIType.Menu) Time.timeScale = 0f;
-                
-                SetControlState(false); // 커서 보이기
-            }
+            // 인벤토리를 열 때 장비창도 같이 엶
+            if (uiType == UIType.Inventory) SetUIActive(UIType.Equip, true);
         }
+
+        RefreshUIState();
     }
 
     public void CloseAllPopup()
     {
-        // 모든 UI를 순회하며 처리
+        // 리스트를 복사해서 순회 (Dictionary 수정 중 오류 방지)
         foreach (var ui in uiDic.Values)
         {
-            if (ui.UIType == UIType.HUD)
+            if (ui.UIType == UIType.HUD || ui.UIType == UIType.QuickSlot)
             {
-                ui.Open(); // HUD는 켠다
+                continue; // HUD와 퀵슬롯은 팝업이 아님
             }
-            else
-            {
-                ui.Close(); // 나머지는 다 끈다
-            }
+            ui.Close();
         }
-        
-        IsPopupOpen = false;
-        Time.timeScale = 1f;
-        SetControlState(true);
+
+        RefreshUIState();
+    }
+
+    private void RefreshUIState()
+    {
+        bool isInventoryOpen = IsUIOpen(UIType.Inventory);
+        bool isEquipOpen = IsUIOpen(UIType.Equip);
+        bool isTradeOpen = IsUIOpen(UIType.Trade);
+        bool isSkillOpen = IsUIOpen(UIType.Skill);
+        bool isMenuOpen = IsUIOpen(UIType.Menu);
+
+        // 팝업 중 하나라도 열려있는지 체크
+        IsPopupOpen = isInventoryOpen || isEquipOpen || isTradeOpen || isSkillOpen || isMenuOpen;
+
+        // 1. HUD: 팝업이 하나라도 열리면 끈다
+        SetUIActive(UIType.HUD, IsPopupOpen == false);
+
+        // 2. QuickSlot: 인벤토리나 상점이 열렸을 때만 HUD와 상관없이 보여준다
+        // 메뉴나 스킬창에서는 꺼지도록 설정
+        bool showQuickSlot = (IsPopupOpen == false) || isInventoryOpen || isEquipOpen || isTradeOpen;
+        if (isMenuOpen || isSkillOpen) 
+        {
+            showQuickSlot = false;
+        }
+        SetUIActive(UIType.QuickSlot, showQuickSlot);
+
+        // 3. 시간 및 커서 제어
+        if (IsPopupOpen)
+        {
+            Time.timeScale = 0f;
+            SetControlState(false); // 커서 보임
+        }
+        else
+        {
+            Time.timeScale = 1f;
+            SetControlState(true); // 커서 숨김
+        }
+    }
+
+    private bool IsUIOpen(UIType type)
+    {
+        return uiDic.ContainsKey(type) && uiDic[type].gameObject.activeSelf;
+    }
+
+    private void SetUIActive(UIType type, bool isActive)
+    {
+        if (uiDic.TryGetValue(type, out var ui))
+        {
+            if (isActive && ui.gameObject.activeSelf == false) ui.Open();
+            else if (isActive == false && ui.gameObject.activeSelf) ui.Close();
+        }
     }
 
     private void SetControlState(bool canControl)
     {
-        if (canControl == true)
+        if (canControl)
         {
             Cursor.visible = false;
             Cursor.lockState = CursorLockMode.Locked;
@@ -131,9 +166,5 @@ public class UIManager : SingletonBase<UIManager>
             Cursor.visible = true;
             Cursor.lockState = CursorLockMode.None;
         }
-
     }
-
-
-
 }

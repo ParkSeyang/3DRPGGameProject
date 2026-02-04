@@ -27,9 +27,10 @@ public class PlayerUI : BaseUI
             Player.Instance.OnExpChanged += UpdateExpUI;
             Player.Instance.OnLevelChanged += UpdateLevelUI;
             Player.Instance.OnGoldChanged += UpdateGoldUI;
+            Player.Instance.OnStatChanged += RefreshAll;
 
             // 초기값 갱신
-            Player.Instance.RefreshAllStats();
+            RefreshAll();
         }
         
         // HUD는 기본적으로 열려있어야 함
@@ -47,7 +48,21 @@ public class PlayerUI : BaseUI
             Player.Instance.OnExpChanged -= UpdateExpUI;
             Player.Instance.OnLevelChanged -= UpdateLevelUI;
             Player.Instance.OnGoldChanged -= UpdateGoldUI;
+            Player.Instance.OnStatChanged -= RefreshAll;
         }
+    }
+
+    private void RefreshAll()
+    {
+        var p = Player.Instance;
+        if (p == null) return;
+
+        UpdateNameUI(p.Name);
+        UpdateHpUI(p.HP, p.MaxHP);
+        UpdateMpUI(p.MP, p.MaxMP);
+        UpdateExpUI(p.Exp, p.MaxExp);
+        UpdateLevelUI(p.Level);
+        UpdateGoldUI(p.Gold);
     }
 
     private void UpdateNameUI(string newName)

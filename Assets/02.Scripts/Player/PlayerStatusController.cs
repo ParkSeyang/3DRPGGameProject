@@ -161,4 +161,85 @@ public class PlayerStatusController : SingletonBase<PlayerStatusController>, ICo
 
         Debug.Log("[PlayerStatusController] 세이브 데이터가 월드에 적용되었습니다.");
     }
+
+    /// <summary>
+    /// 아이템 효과를 적용합니다. (소모품 전용)
+    /// </summary>
+    /// <returns>아이템 소모 여부 (true: 소모, false: 유지)</returns>
+    public bool ApplyItemEffect(Item item)
+    {
+        if (item == null || player == null) return false;
+
+        if (item.ItemCategory == "Potion")
+        {
+            return HandlePotion(item);
+        }
+        
+        // 장비 아이템 등은 소모품이 아니므로 여기서 처리하지 않고 false 반환
+        // 장착 로직은 EquipItem 메서드에서 처리
+        return false;
+    }
+
+    public void EquipItem(Item item)
+    {
+        if (item == null || player == null) return;
+
+        switch (item.ItemCategory)
+        {
+            case "Weapon":
+                player.AddBonusATK(item.Value);
+                Debug.Log($"[Equip] {item.ItemName} 장착: BonusATK +{item.Value}");
+                break;
+            case "Armor":
+                player.AddBonusDEF(item.Value);
+                Debug.Log($"[Equip] {item.ItemName} 장착: BonusDEF +{item.Value}");
+                break;
+            case "Artifact":
+                player.AddMaxHP(25f);
+                player.AddMaxMP(25f);
+                Debug.Log($"[Equip] {item.ItemName} 장착: MaxHP/MP +25");
+                break;
+        }
+    }
+
+    public void UnequipItem(Item item)
+    {
+        if (item == null || player == null) return;
+
+        switch (item.ItemCategory)
+        {
+            case "Weapon":
+                player.AddBonusATK(-item.Value); // 차감
+                Debug.Log($"[Unequip] {item.ItemName} 해제: BonusATK -{item.Value}");
+                break;
+            case "Armor":
+                player.AddBonusDEF(-item.Value);
+                Debug.Log($"[Unequip] {item.ItemName} 해제: BonusDEF -{item.Value}");
+                break;
+            case "Artifact":
+                player.AddMaxHP(-25f);
+                player.AddMaxMP(-25f);
+                Debug.Log($"[Unequip] {item.ItemName} 해제: MaxHP/MP -25");
+                break;
+        }
+    }
+
+    private bool HandlePotion(Item item)
+    {
+        // ID별 상세 로직 (소/중 구분은 item.Value에 이미 반영되어 있음)
+        if (item.ItemID == "I001" || item.ItemID == "I003") // 체력 포션
+        {
+            player.SetHP(player.HP + item.Value);
+            Debug.Log($"[Potion] {item.ItemName} 사용: HP {item.Value} 회복");
+            return true;
+        }
+        else if (item.ItemID == "I002" || item.ItemID == "I004") // 마나 포션
+        {
+            player.SetMP(player.MP + item.Value);
+            Debug.Log($"[Potion] {item.ItemName} 사용: MP {item.Value} 회복");
+            return true;
+        }
+
+        return false;
+    }
 }

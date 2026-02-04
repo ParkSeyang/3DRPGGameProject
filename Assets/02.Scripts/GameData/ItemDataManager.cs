@@ -1,107 +1,85 @@
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using UnityEngine;
 
-public class ItemDataManager : MonoBehaviour
+public class ItemDataManager : SingletonBase<ItemDataManager>
 {
-    public static ItemDataManager Instance { get; private set; }
+    // ID 기반 데이터 딕셔너리 (데이터 보관용)
+    private Dictionary<string, ItemInfo> itemInfoTable = new Dictionary<string, ItemInfo>();
+    
+    // ID 기반 리소스(SO) 딕셔너리 (실제 게임에서 사용)
+    private Dictionary<string, Item> itemResourceTable = new Dictionary<string, Item>();
 
-    private Dictionary<int, Item> itemDatabase = new Dictionary<int, Item>();
+    public IReadOnlyDictionary<string, ItemInfo> ItemInfoTable => itemInfoTable;
 
-    // TSV 로드용 DTO
-    private class ItemRawData
+    protected override void OnInitialize()
     {
-        public string ItemID { get; set; }
-        public string ItemName { get; set; }
-        public string ItemCategory { get; set; }
-        public int SellPrice { get; set; }
-        public int BuyPrice { get; set; }
-        public int Value { get; set; }
-        public string Description { get; set; }
-        public int Stack { get; set; }
-        public string PrefabName { get; set; }
+        LoadItemTable();
+        LoadItemResources();
     }
 
-    private void Awake()
+    private void LoadItemTable()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-            LoadItemData();
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
-    }
+        string path = Path.Combine(Application.streamingAssetsPath, "TSVData", "ItemData.tsv");
+        List<ItemInfo> list = TSVReader.ReadTable<ItemInfo>(path);
 
-    private void LoadItemData()
-    {
-        string path = Path.Combine(Application.streamingAssetsPath, "TSVData/ItemData.tsv");
-        List<ItemRawData> rawDataList = TSVReader.ReadTable<ItemRawData>(path);
-
-        if (rawDataList == null)
+        if (list == null)
         {
-            Debug.LogError("Failed to load ItemData.tsv");
+            Debug.LogError("[ItemDataManager] TSV 파일을 로드하지 못했습니다.");
             return;
         }
 
-        foreach (var rawData in rawDataList)
+        foreach (var info in list)
         {
-            // 런타임에 ScriptableObject 인스턴스 생성
-            Item newItem = ScriptableObject.CreateInstance<Item>();
-            
-            newItem.InitializeFromTSV(
-                rawData.ItemID,
-                rawData.ItemName,
-                rawData.ItemCategory,
-                rawData.SellPrice,
-                rawData.BuyPrice,
-                rawData.Value,
-                rawData.Description,
-                rawData.Stack,
-                rawData.PrefabName
-            );
-
-            // 리소스 로드 (아이콘, 프리팹)
-            // 아이콘 경로는 "Icons/{PrefabName}" 등으로 가정하거나, PrefabName과 동일한 이름의 스프라이트를 찾습니다.
-            // 실제 프로젝트 경로에 맞춰 수정 필요. 여기서는 Resources 폴더 사용을 가정합니다.
-            newItem.Icon = Resources.Load<Sprite>($"Icons/{rawData.PrefabName}");
-            // 만약 못 찾으면 기본 아이콘
-            if (newItem.Icon == null) newItem.Icon = Resources.Load<Sprite>($"Icons/DefaultIcon");
-
-            newItem.Prefab = Resources.Load<GameObject>($"Prefabs/Items/{rawData.PrefabName}");
-
-            if (itemDatabase.ContainsKey(newItem.ItemID))
+            if (!itemInfoTable.ContainsKey(info.ItemID))
             {
-                Debug.LogWarning($"Duplicate Item ID: {newItem.ItemID}");
+                itemInfoTable.Add(info.ItemID, info);
+            }
+        }
+        Debug.Log($"[ItemDataManager] TSV 로드 완료: {itemInfoTable.Count}개");
+    }
+
+    private void LoadItemResources()
+    {
+        // Resources/Items 폴더 내의 모든 Item ScriptableObject를 로드
+        Item[] items = Resources.LoadAll<Item>("Items");
+        
+        foreach (var item in items)
+        {
+            // SO에 설정된 ItemID를 기준으로 TSV 데이터 매칭
+            if (itemInfoTable.TryGetValue(item.ItemID, out var info))
+            {
+                // TSV 데이터를 SO 인스턴스에 주입 (런타임 동기화)
+                item.ItemName = info.ItemName;
+                item.ItemCategory = info.ItemCategory;
+                item.SellPrice = info.SellPrice;
+                item.BuyPrice = info.BuyPrice;
+                item.Value = info.Value;
+                item.Description = info.Description;
+                item.MaxStack = info.Stack;
+
+                if (!itemResourceTable.ContainsKey(item.ItemID))
+                {
+                    itemResourceTable.Add(item.ItemID, item);
+                }
             }
             else
             {
-                itemDatabase.Add(newItem.ItemID, newItem);
+                Debug.LogWarning($"[ItemDataManager] SO의 ItemID({item.ItemID})와 일치하는 TSV 데이터를 찾을 수 없습니다.");
             }
         }
-
-        Debug.Log($"ItemDataManager: Loaded {itemDatabase.Count} items.");
+        Debug.Log($"[ItemDataManager] 리소스 매칭 및 데이터 주입 완료: {itemResourceTable.Count}개");
     }
 
-    public Item GetItem(int id)
+    public Item GetItem(string itemId)
     {
-        if (itemDatabase.ContainsKey(id))
-            return itemDatabase[id];
+        if (itemResourceTable.TryGetValue(itemId, out var original))
+        {
+            // 원본을 복제하여 반환 (개별 인스턴스화)
+            Item instance = Instantiate(original);
+            instance.name = original.name; // 이름 뒤에 (Clone) 붙는 것 방지
+            return instance;
+        }
         return null;
-    }
-    
-    public Item GetItem(string name)
-    {
-        // 이름으로 검색 (느릴 수 있으므로 캐싱 권장)
-        return itemDatabase.Values.FirstOrDefault(item => item.ItemName == name);
-    }
-
-    public List<int> GetAllItemIDs()
-    {
-        return itemDatabase.Keys.ToList();
     }
 }

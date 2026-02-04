@@ -7,7 +7,6 @@ public class ItemStat
     public float Defense;
     public float Health; // 회복량 또는 최대 체력 증가량
     public float Mana;   // 회복량 또는 최대 마나 증가량
-    public float MoveSpeed;
 
     public ItemStat() { }
 
@@ -19,7 +18,6 @@ public class ItemStat
         result.Defense = a.Defense + b.Defense;
         result.Health = a.Health + b.Health;
         result.Mana = a.Mana + b.Mana;
-        result.MoveSpeed = a.MoveSpeed + b.MoveSpeed;
         return result;
     }
 }

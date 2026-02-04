@@ -33,6 +33,7 @@ public class Player : SingletonBase<Player>
     public event Action<int, int> OnExpChanged;    // Current, Max
     public event Action<int> OnLevelChanged;
     public event Action<int> OnGoldChanged;
+    public event Action OnStatChanged; // 기타 스탯(ATK, DEF 등) 변경 알림
 
     protected override void OnInitialize()
     {
@@ -86,6 +87,7 @@ public class Player : SingletonBase<Player>
         OnExpChanged?.Invoke(Exp, MaxExp);
         OnLevelChanged?.Invoke(Level);
         OnGoldChanged?.Invoke(Gold);
+        OnStatChanged?.Invoke();
     }
 
     public PlayerStat GetCurrentStatData() => new PlayerStat()
@@ -139,6 +141,33 @@ public class Player : SingletonBase<Player>
     }
     
     public void AddExp(int amount) => Exp += amount; // 레벨업 체크는 Controller에서 수행. 여기서 이벤트 호출 안 함 (Controller가 SetExp 호출할 것임)
+
+    // --- 스탯 변경 메서드 (PlayerStatusController 전용) ---
+    public void AddBonusATK(float amount)
+    {
+        BonusATK += amount;
+        OnStatChanged?.Invoke();
+    }
+
+    public void AddBonusDEF(float amount)
+    {
+        BonusDEF += amount;
+        OnStatChanged?.Invoke();
+    }
+
+    public void AddMaxHP(float amount)
+    {
+        MaxHP += amount;
+        HP = Mathf.Clamp(HP, 0, MaxHP); 
+        OnHpChanged?.Invoke(HP, MaxHP);
+    }
+
+    public void AddMaxMP(float amount)
+    {
+        MaxMP += amount;
+        MP = Mathf.Clamp(MP, 0, MaxMP);
+        OnMpChanged?.Invoke(MP, MaxMP);
+    }
 
     public void ApplyStatData(PlayerStat stat)
     {
