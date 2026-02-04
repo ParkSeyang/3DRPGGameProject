@@ -9,16 +9,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 74fc488d173cb0d448d3d41240871499, type: 3}
+  m_Script: {fileID: 11500000, guid: 5848f437ecf0cbb49899ded8afc508ce, type: 3}
   m_Name: HPPotion_Middle
   m_EditorClassIdentifier: Assembly-CSharp::Item
   ItemID: I003
   ItemName: "\uCCB4\uB825 \uD3EC\uC158 (\uC911)"
-  Category: 0
-  Description: "\uC0AC\uC6A9\uC2DC \uCCB4\uB825\uC744 50 \uD68C\uBCF5\uD569\uB2C8\uB2E4."
-  Icon: {fileID: 21300000, guid: e77e92450fc468a48bcf4ef6e07ab979, type: 3}
-  Prefab: {fileID: 1848628977646670, guid: c1354dd699d898c40ac3a1eb08964fd1, type: 3}
+  ItemCategory: Potion
   SellPrice: 30
   BuyPrice: 100
   Value: 50
+  Description: "\uC0AC\uC6A9\uC2DC \uCCB4\uB825\uC744 50 \uD68C\uBCF5\uD569\uB2C8\uB2E4."
   MaxStack: 10
+  Icon: {fileID: 21300000, guid: e77e92450fc468a48bcf4ef6e07ab979, type: 3}
+  Prefab: {fileID: 1848628977646670, guid: c1354dd699d898c40ac3a1eb08964fd1, type: 3}

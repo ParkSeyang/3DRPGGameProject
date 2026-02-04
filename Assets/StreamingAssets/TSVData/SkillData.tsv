@@ -1,0 +1,6 @@
+								
+SkillID	SkillName	SkillType	SkillLevel	Skill_CoolTime	MP_Consumption 	Value	Icon	Description
+1	StrongBody	Passive	0	0	0	10		강인한 육체 : 육체를 단련한다. 스킬레벨에 따라서 최대 체력 및 최대마나가 상승한다.
+2	SwordSlash	Active	0	15	15	30		대검 일격 : 검으로 전방을 휘둘러 주위적에게 피해를준다. 스킬공격력  * 현재 스킬레벨 만큼 데미지를 입힐 수 있다.
+3	GreatSwordTraining	Passive	0	0	0	5		대검 단련 : 대검을 다루는법을 숙련한다. 스킬레벨에 따라서 최대 공격력 상승
+4	EarthShatter	Active	0	25	30	50		대지 분쇄 : 강하게 검을 내리찍어서 주위 적에게 데미지를 입힐 수 있다.스킬공격력  * 현재 스킬레벨 만큼 데미지를 입힐 수 있다.

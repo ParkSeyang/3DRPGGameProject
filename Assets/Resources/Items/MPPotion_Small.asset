@@ -9,16 +9,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 74fc488d173cb0d448d3d41240871499, type: 3}
+  m_Script: {fileID: 11500000, guid: 5848f437ecf0cbb49899ded8afc508ce, type: 3}
   m_Name: MPPotion_Small
   m_EditorClassIdentifier: Assembly-CSharp::Item
   ItemID: I002
   ItemName: "\uB9C8\uB098 \uD3EC\uC158 (\uC18C)"
-  Category: 0
+  ItemCategory: Potion
+  SellPrice: 25
+  BuyPrice: 75
+  Value: 30
   Description: "\uC0AC\uC6A9 \uC2DC \uB9C8\uB098\uB97C 30 \uD68C\uBCF5\uD569\uB2C8\uB2E4."
+  MaxStack: 10
   Icon: {fileID: 21300000, guid: 01c2d339458c19c4abad28c5b882a7f3, type: 3}
   Prefab: {fileID: 123910, guid: aaf66617a9239884aa44a5f00e14bfc5, type: 3}
-  SellPrice: 25
-  BuyPrice: 70
-  Value: 30
-  MaxStack: 10

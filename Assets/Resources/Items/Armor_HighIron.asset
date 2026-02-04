@@ -9,17 +9,17 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 74fc488d173cb0d448d3d41240871499, type: 3}
+  m_Script: {fileID: 11500000, guid: 5848f437ecf0cbb49899ded8afc508ce, type: 3}
   m_Name: Armor_HighIron
   m_EditorClassIdentifier: Assembly-CSharp::Item
   ItemID: I006
   ItemName: "\uAC15\uCCA0 \uAC11\uC637"
-  Category: 2
-  Description: "\uC7A5\uC778\uC774 \uB9CC\uB4E0 \uAC15\uCCA0 \uAC11\uC637. \uBB34\uB09C\uD558\uB2E4(\uBC29\uC5B4\uB825
-    +5)"
-  Icon: {fileID: 21300000, guid: 70032c3f440092f44b76ceb0ec4588cf, type: 3}
-  Prefab: {fileID: 1231945420453148, guid: 410cb94f2a10db74bb57d802d5a70918, type: 3}
+  ItemCategory: Armor
   SellPrice: 125
   BuyPrice: 250
   Value: 5
+  Description: "\uC7A5\uC778\uC774 \uB9CC\uB4E0 \uAC15\uCCA0 \uAC11\uC637. \uBB34\uB09C\uD558\uB2E4(\uBC29\uC5B4\uB825
+    +5)"
   MaxStack: 1
+  Icon: {fileID: 21300000, guid: 70032c3f440092f44b76ceb0ec4588cf, type: 3}
+  Prefab: {fileID: 1231945420453148, guid: 410cb94f2a10db74bb57d802d5a70918, type: 3}
