@@ -2,7 +2,8 @@ public enum UIType
 {
     None,
     HUD,
-    QuickSlot, // 퀵슬롯 제어를 위해 추가
+    QuickSlot, // 아이템 퀵슬롯
+    SkillQuickSlot, // 스킬 퀵슬롯 (신규)
     Inventory,
     Trade,
     Equip, // 장비창

@@ -149,15 +149,99 @@ public class PlayerStatusController : SingletonBase<PlayerStatusController>, ICo
         Debug.Log($"[Death] 사망 페널티: {penalty}G 소실");
     }
 
+    public UserSaveData GetSaveData()
+    {
+        var data = new UserSaveData();
+        data.userName = player.Name;
+        data.playerStat = player.GetCurrentStatData();
+        data.SetPosition(player.transform.position);
+
+        // 인벤토리 데이터 저장
+        if (InventorySystem.Instance != null)
+        {
+            var userInven = InventorySystem.Instance.GetInventoryOrNull("User");
+            if (userInven != null) data.userInventoryData = userInven.GetSaveData();
+
+            var equipInven = InventorySystem.Instance.GetInventoryOrNull("Equip");
+            if (equipInven != null) data.equipInventoryData = equipInven.GetSaveData();
+            
+            var quickInven = InventorySystem.Instance.GetInventoryOrNull("Quick");
+            if (quickInven != null) data.quickSlotData = quickInven.GetSaveData();
+        }
+
+        // 스킬 데이터 저장
+        if (SkillDataManager.Instance != null)
+        {
+            data.skillData = SkillDataManager.Instance.GetSaveData();
+        }
+        
+        // 장착된 스킬 슬롯 저장
+        var skillSystem = player.GetComponent<PlayerSkillSystem>();
+        if (skillSystem != null)
+        {
+            data.skillSlotQ = skillSystem.SkillSlot_Q;
+            data.skillSlotE = skillSystem.SkillSlot_E;
+        }
+
+        return data;
+    }
+
     public void ApplySaveData(UserSaveData data)
     {
         if (player == null || data == null) return;
 
-        // 1. 위치 적용
+        // 1. 저장된 현재 체력/마나 값을 임시 보관
+        float savedHP = data.playerStat.HP;
+        float savedMP = data.playerStat.MP;
+
+        // 2. 위치 적용
         player.transform.position = data.GetPosition();
 
-        // 2. 스탯 적용
+        // 3. 스탯 적용
         player.ApplyStatData(data.playerStat);
+
+        // 4. 스킬 데이터 복원 및 패시브 적용
+        if (SkillDataManager.Instance != null && data.skillData != null)
+        {
+            SkillDataManager.Instance.LoadFromSaveData(data.skillData);
+            UpdatePassiveStats(); // 패시브 스탯 적용
+        }
+        
+        // 장착된 스킬 슬롯 복원
+        var skillSystem = player.GetComponent<PlayerSkillSystem>();
+        if (skillSystem != null)
+        {
+            skillSystem.SkillSlot_Q = data.skillSlotQ;
+            skillSystem.SkillSlot_E = data.skillSlotE;
+        }
+
+        // 5. 인벤토리 데이터 복원 (장비 장착으로 Max 증가)
+        if (InventorySystem.Instance != null)
+        {
+            var userInven = InventorySystem.Instance.GetInventoryOrNull("User");
+            if (userInven != null && data.userInventoryData != null) 
+                userInven.LoadFromSaveData(data.userInventoryData);
+
+            var equipInven = InventorySystem.Instance.GetInventoryOrNull("Equip");
+            
+            // 장비창 로드 시 중복 적용 방지를 위해 보너스 스탯 초기화가 필요하다면 여기서 수행
+            player.AddBonusATK(-player.BonusATK); 
+            player.AddBonusDEF(-player.BonusDEF);
+            
+            if (equipInven != null && data.equipInventoryData != null) 
+                equipInven.LoadFromSaveData(data.equipInventoryData);
+                
+            var quickInven = InventorySystem.Instance.GetInventoryOrNull("Quick");
+            if (quickInven != null && data.quickSlotData != null) 
+                quickInven.LoadFromSaveData(data.quickSlotData);
+        }
+        
+        // 5. 최종 보정: 장비 장착으로 Max값이 확정된 후, 저장해뒀던 현재 HP/MP를 다시 적용
+        player.SetHP(savedHP);
+        player.SetMP(savedMP);
+
+        // 6. 모든 데이터 로드 후 스탯 UI 강제 동기화
+        player.RefreshAllStats();
 
         Debug.Log("[PlayerStatusController] 세이브 데이터가 월드에 적용되었습니다.");
     }
@@ -230,16 +314,74 @@ public class PlayerStatusController : SingletonBase<PlayerStatusController>, ICo
         if (item.ItemID == "I001" || item.ItemID == "I003") // 체력 포션
         {
             player.SetHP(player.HP + item.Value);
-            Debug.Log($"[Potion] {item.ItemName} 사용: HP {item.Value} 회복");
+            Debug.Log($"[Potion] {item.ItemName} 사용: {item.Value} HP 회복 (현재: {player.HP}/{player.MaxHP})");
             return true;
         }
         else if (item.ItemID == "I002" || item.ItemID == "I004") // 마나 포션
         {
             player.SetMP(player.MP + item.Value);
-            Debug.Log($"[Potion] {item.ItemName} 사용: MP {item.Value} 회복");
+            Debug.Log($"[Potion] {item.ItemName} 사용: {item.Value} MP 회복 (현재: {player.MP}/{player.MaxMP})");
             return true;
         }
 
         return false;
+    }
+
+    // --- 패시브 스킬 시스템 연동 ---
+    
+    private float _currentPassiveHp;
+    private float _currentPassiveMp;
+    private float _currentPassiveAtk;
+    private float _currentPassiveDef;
+
+    public void UpdatePassiveStats()
+    {
+        if (SkillDataManager.Instance == null || player == null) return;
+
+        // 1. 기존 패시브 효과 제거 (이전 계산값 차감)
+        player.AddMaxHP(-_currentPassiveHp);
+        player.AddMaxMP(-_currentPassiveMp);
+        player.AddBonusATK(-_currentPassiveAtk);
+        player.AddBonusDEF(-_currentPassiveDef);
+
+        // 2. 새 패시브 효과 계산
+        float newHp = 0, newMp = 0, newAtk = 0, newDef = 0;
+
+        foreach (var skill in SkillDataManager.Instance.GetAllSkills())
+        {
+            if (skill.Type != SkillType.Passive || skill.Level == 0) continue;
+
+            // 스킬 ID에 따른 효과 분기
+            // ID 1: StrongBody (HP/MP)
+            // ID 3: GreatSwordTraining (ATK)
+            
+            float effectValue = skill.GetCurrentValue();
+
+            switch (skill.SkillID)
+            {
+                case 1: // StrongBody
+                    newHp += effectValue;
+                    newMp += effectValue;
+                    break;
+                case 3: // GreatSwordTraining
+                    newAtk += effectValue;
+                    break;
+            }
+        }
+
+        // 3. 새 효과 적용
+        player.AddMaxHP(newHp);
+        player.AddMaxMP(newMp);
+        player.AddBonusATK(newAtk);
+        player.AddBonusDEF(newDef);
+
+        // 4. 누적치 갱신
+        _currentPassiveHp = newHp;
+        _currentPassiveMp = newMp;
+        _currentPassiveAtk = newAtk;
+        _currentPassiveDef = newDef;
+        
+        player.RefreshAllStats();
+        // Debug.Log($"[Passive] 패시브 스탯 갱신: HP+{newHp}, MP+{newMp}, ATK+{newAtk}");
     }
 }

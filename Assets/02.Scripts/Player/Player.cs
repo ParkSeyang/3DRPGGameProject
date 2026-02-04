@@ -33,6 +33,7 @@ public class Player : SingletonBase<Player>
     public event Action<int, int> OnExpChanged;    // Current, Max
     public event Action<int> OnLevelChanged;
     public event Action<int> OnGoldChanged;
+    public event Action<int> OnSpChanged; // SP 변경 알림
     public event Action OnStatChanged; // 기타 스탯(ATK, DEF 등) 변경 알림
 
     protected override void OnInitialize()
@@ -167,6 +168,24 @@ public class Player : SingletonBase<Player>
         MaxMP += amount;
         MP = Mathf.Clamp(MP, 0, MaxMP);
         OnMpChanged?.Invoke(MP, MaxMP);
+    }
+
+    public bool UseSP(int amount)
+    {
+        if (SP >= amount)
+        {
+            SP -= amount;
+            OnSpChanged?.Invoke(SP);
+            return true;
+        }
+        return false;
+    }
+
+    public void AddSP(int amount)
+    {
+        SP += amount;
+        Debug.Log($"[Cheat] SP {amount} 추가됨. 현재 SP: {SP}");
+        OnSpChanged?.Invoke(SP);
     }
 
     public void ApplyStatData(PlayerStat stat)

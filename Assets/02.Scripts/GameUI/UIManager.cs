@@ -118,16 +118,29 @@ public class UIManager : SingletonBase<UIManager>
         // 1. HUD: 팝업이 하나라도 열리면 끈다
         SetUIActive(UIType.HUD, IsPopupOpen == false);
 
-        // 2. QuickSlot: 인벤토리나 상점이 열렸을 때만 HUD와 상관없이 보여준다
+        // 2. QuickSlot (아이템): 인벤토리나 상점이 열렸을 때만 HUD와 상관없이 보여준다
         // 메뉴나 스킬창에서는 꺼지도록 설정
-        bool showQuickSlot = (IsPopupOpen == false) || isInventoryOpen || isEquipOpen || isTradeOpen;
+        bool showQuickSlot = (IsPopupOpen == false) || isInventoryOpen || isTradeOpen || isEquipOpen;
         if (isMenuOpen || isSkillOpen) 
         {
             showQuickSlot = false;
         }
         SetUIActive(UIType.QuickSlot, showQuickSlot);
+        
+        // 3. SkillQuickSlot (스킬): 평상시와 스킬창 열렸을 때만 보임
+        // 인벤토리, 상점, 메뉴 등 다른 창이 열리면 숨김
+        bool showSkillQuickSlot = true;
+        if (isInventoryOpen || isTradeOpen || isEquipOpen || isMenuOpen)
+        {
+            showSkillQuickSlot = false;
+        }
+        else if (isSkillOpen)
+        {
+            showSkillQuickSlot = true;
+        }
+        SetUIActive(UIType.SkillQuickSlot, showSkillQuickSlot);
 
-        // 3. 시간 및 커서 제어
+        // 4. 시간 및 커서 제어
         if (IsPopupOpen)
         {
             Time.timeScale = 0f;

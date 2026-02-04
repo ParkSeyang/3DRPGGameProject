@@ -42,6 +42,11 @@ public class InventoryTester : MonoBehaviour
                 Debug.Log($"[Tester] 플레이어 체력 감소됨. 현재 HP: {Player.Instance.HP}");
             }
         }
+        if (Input.GetKeyDown(KeyCode.F11))
+        { 
+            Player.Instance.AddSP(10); // Player.cs에 AddSP 메서드가 있어야 함
+        }
+        
     }
 
     private void AddItemToUserInventory(string itemID, int count)

@@ -86,25 +86,25 @@ public class SlotSystem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        if (UserInput.Instance != null)
+        if (UserInputSystem.Instance != null)
         {
-            UserInput.Instance.ProcessBeginDrag(this, eventData);
+            UserInputSystem.Instance.ProcessBeginDrag(this, eventData);
         }
     }
 
     public void OnDrag(PointerEventData eventData)
     {
-        if (UserInput.Instance != null)
+        if (UserInputSystem.Instance != null)
         {
-            UserInput.Instance.ProcessDrag(eventData);
+            UserInputSystem.Instance.ProcessDrag(eventData);
         }
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        if (UserInput.Instance != null)
+        if (UserInputSystem.Instance != null)
         {
-            UserInput.Instance.ProcessEndDrag(eventData);
+            UserInputSystem.Instance.ProcessEndDrag(eventData);
         }
     }
 }

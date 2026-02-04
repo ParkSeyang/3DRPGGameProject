@@ -17,11 +17,12 @@ public class QuickSlotInventory : BaseInventory
 
     private void CheckQuickSlotInput()
     {
-        if (Input.GetKeyDown(KeyCode.Q)) UseItemInSlot(0, 0);
-        if (Input.GetKeyDown(KeyCode.E)) UseItemInSlot(0, 1);
-        if (Input.GetKeyDown(KeyCode.Alpha1)) UseItemInSlot(0, 2);
-        if (Input.GetKeyDown(KeyCode.Alpha2)) UseItemInSlot(0, 3);
-        if (Input.GetKeyDown(KeyCode.Alpha3)) UseItemInSlot(0, 4);
+        // Q, E는 스킬용으로 변경되었으므로 숫자키 1~5로 매핑 변경
+        if (Input.GetKeyDown(KeyCode.Alpha1)) UseItemInSlot(0, 0);
+        if (Input.GetKeyDown(KeyCode.Alpha2)) UseItemInSlot(0, 1);
+        if (Input.GetKeyDown(KeyCode.Alpha3)) UseItemInSlot(0, 2);
+        if (Input.GetKeyDown(KeyCode.Alpha4)) UseItemInSlot(0, 3);
+        if (Input.GetKeyDown(KeyCode.Alpha5)) UseItemInSlot(0, 4);
     }
 
     private void UseItemInSlot(int row, int col)

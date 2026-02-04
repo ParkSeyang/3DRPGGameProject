@@ -14,6 +14,9 @@ public class EnemyDataManager : SingletonBase<EnemyDataManager>
 
     private void LoadEnemyTables()
     {
+        Debug.Log($"[EnemyDataManager] LoadEnemyTables 호출됨 (현재 데이터 수: {EnemyTable.Count})");
+        EnemyTable.Clear(); // 중복 방지
+
         string basePath = Path.Combine(Application.streamingAssetsPath, "TSVData");
         string enemyPath = Path.Combine(basePath, "EnemyData.tsv");
 

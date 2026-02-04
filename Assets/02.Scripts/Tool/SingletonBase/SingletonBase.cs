@@ -30,9 +30,13 @@ public abstract class SingletonBase<T> : MonoBehaviour where T : MonoBehaviour
                             instance = singletonObject.AddComponent<T>();
                             DontDestroyOnLoad(singletonObject);
                         }
-
-                        (instance as SingletonBase<T>)?.OnInitialize();
-                        isInitialized = true;
+                        
+                        // Awake에서 이미 초기화되었는지 확인 후, 안 되었다면 초기화
+                        if (isInitialized == false)
+                        {
+                            (instance as SingletonBase<T>)?.OnInitialize();
+                            isInitialized = true;
+                        }
                     }
 
                     return instance;

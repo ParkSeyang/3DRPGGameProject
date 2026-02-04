@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46765131f5095a346a9cffdd2111eb77, type: 3}
+  m_Name: ActiveSkill2
+  m_EditorClassIdentifier: Assembly-CSharp::Skill
+  SkillID: 4
+  SkillName: EarthShatter
+  Type: 1
+  Level: 0
+  MaxLevel: 10
+  CoolTime: 25
+  MpCost: 30
+  Value: 50
+  Icon: {fileID: 21300000, guid: f100c8d976bb56d409905ae76e1de8ec, type: 3}
+  EffectPrefab: {fileID: 1672181623104776, guid: 50dfd53c87d310849aa5df80ed721813, type: 3}
+  Description: "\uB300\uC9C0 \uBD84\uC1C4 : \uAC15\uD558\uAC8C \uAC80\uC744 \uB0B4\uB9AC\uCC0D\uC5B4\uC11C
+    \uC8FC\uC704 \uC801\uC5D0\uAC8C \uB370\uBBF8\uC9C0\uB97C \uC785\uD790 \uC218
+    \uC788\uB2E4.\uC2A4\uD0AC\uACF5\uACA9\uB825  * \uD604\uC7AC \uC2A4\uD0AC\uB808\uBCA8
+    \uB9CC\uD07C \uB370\uBBF8\uC9C0\uB97C \uC785\uD790 \uC218 \uC788\uB2E4."
+  CurrentCoolTime: 0

@@ -96,20 +96,76 @@ namespace ParkSeyang
 
         // --- 코루틴을 활용한 기능 로직 ---
 
+        // UI 상태 백업용 딕셔너리
+        private System.Collections.Generic.Dictionary<string, bool> uiStateBackup = new System.Collections.Generic.Dictionary<string, bool>();
+
+        private void BackupAndActivateInventories()
+        {
+            uiStateBackup.Clear();
+            
+            if (InventorySystem.Instance == null) return;
+            
+            // 혹시 모르니 강제 탐색 한 번 수행
+            InventorySystem.Instance.ForceFindInventories();
+
+            string[] targets = { "User", "Equip", "Quick" };
+            foreach (var name in targets)
+            {
+                var inven = InventorySystem.Instance.GetInventoryOrNull(name);
+                if (inven != null)
+                {
+                    bool wasActive = inven.gameObject.activeSelf;
+                    uiStateBackup[name] = wasActive;
+                    
+                    if (wasActive == false)
+                    {
+                        inven.gameObject.SetActive(true);
+                    }
+                }
+            }
+        }
+
+        private void RestoreInventories()
+        {
+            if (InventorySystem.Instance == null) return;
+
+            foreach (var pair in uiStateBackup)
+            {
+                var inven = InventorySystem.Instance.GetInventoryOrNull(pair.Key);
+                if (inven != null)
+                {
+                    // 원래 꺼져 있었던 녀석들만 다시 꺼준다
+                    if (pair.Value == false)
+                    {
+                        inven.gameObject.SetActive(false);
+                    }
+                }
+            }
+            uiStateBackup.Clear();
+        }
+
         private IEnumerator SaveProcessRoutine()
         {
-            if (DataManager.IsInitialized == false) yield break;
+            if (DataManager.IsInitialized == false || PlayerStatusController.IsInitialized == false) yield break;
 
             Debug.Log("[GameMenu] 저장을 시작합니다...");
+
+            // 1. UI 강제 활성화 (데이터 확보를 위해)
+            BackupAndActivateInventories();
+
+            // 안정화를 위해 1프레임 대기
+            yield return null;
             
-            // 1. 데이터 추출
-            Vector3 currentPos = Player.Instance != null ? Player.Instance.transform.position : Vector3.zero;
-            PlayerStat currentStat = Player.Instance != null ? Player.Instance.GetCurrentStatData() : null;
+            // 2. 전체 데이터 추출 (인벤토리 포함)
+            UserSaveData saveData = PlayerStatusController.Instance.GetSaveData();
 
-            // 2. 저장 실행
-            DataManager.Instance.SaveUserData(currentPos, currentStat);
+            // 3. 저장 실행
+            DataManager.Instance.SaveUserData(saveData);
 
-            yield return null; // 한 프레임 대기
+            yield return null; 
+            
+            // 4. UI 상태 복구
+            RestoreInventories();
             
             Debug.Log("[GameMenu] 저장 완료");
         }
@@ -123,16 +179,38 @@ namespace ParkSeyang
             // 1. 데이터 로드
             var data = DataManager.Instance.LoadUserData();
             
-            // 2. 데이터 적용
+            // 2. UI 강제 활성화 (데이터 적용 및 Awake 보장을 위해)
+            BackupAndActivateInventories();
+            
+            // 시스템 안정화 대기
+            yield return null;
+            
+            // 3. 데이터 적용
             if (data != null && PlayerStatusController.IsInitialized)
             {
                 PlayerStatusController.Instance.ApplySaveData(data);
+                
+                // 데이터 적용 후 한 프레임 대기
+                yield return null;
+
+                // 스탯 UI 갱신
+                if (Player.Instance != null) Player.Instance.RefreshAllStats();
             }
 
+            // 4. UI 상태 복구 (원래대로 되돌리기)
+            RestoreInventories();
+
             Debug.Log("[GameMenu] 로드 완료");
-            ToggleMenu(); // 로드 후 메뉴 닫기
+            
+            // 메뉴를 닫고 HUD를 갱신하기 위해 UIManager 사용
+            UIManager.Instance.ToggleUI(UIType.Menu); 
 
             yield return null;
+        }
+
+        private void ForceRefreshUI(string inventoryName)
+        {
+             // 더 이상 사용하지 않음 (BackupAndActivateInventories로 대체됨)
         }
 
         private void OnExitButtonClicked()

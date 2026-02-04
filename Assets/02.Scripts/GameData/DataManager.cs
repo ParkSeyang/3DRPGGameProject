@@ -16,17 +16,15 @@ public class DataManager : SingletonBase<DataManager>
         LoadPlayerTables();
     }
 
-    public void SaveUserData(Vector3 position, PlayerStat stat)
+    public void SaveUserData(UserSaveData saveData)
     {
+        if (saveData == null) return;
+
         // UserData 폴더가 없으면 생성
         if (Directory.Exists(SaveDirectory) == false)
         {
             Directory.CreateDirectory(SaveDirectory);
         }
-
-        UserSaveData saveData = new UserSaveData();
-        saveData.SetPosition(position);
-        saveData.playerStat = stat;
 
         JsonWriter.Save(saveData, SavePath);
         Debug.Log($"[DataManager] 데이터 저장 완료: {SavePath}");

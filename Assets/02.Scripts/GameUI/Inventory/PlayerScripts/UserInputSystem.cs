@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class UserInput : SingletonBase<UserInput>
+public class UserInputSystem : SingletonBase<UserInputSystem>
 {
     public SlotSystem CursorSlot;
     
