@@ -384,6 +384,3 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   version: 11
-  hdPluginSubTargetMaterialVersions:
-    m_Keys: []
-    m_Values: 

@@ -1,0 +1,29 @@
+Category	Key	Dialogue
+Guide	Guide_Start	전사의 모험을 플레이 해주셔서 감사합니다. 간단하게 조작키에대해서 알려 드리겠습니다. 조작키는 WASD로 이동하기, Q,E는 스킬사용 인벤토리키는 I, 스킬트리창은 K, 구르기는 스페이스바, 가드키는 마우스우클릭, 공격키는 마우스 좌클릭, 퀵슬롯 아이템 사용은 1,2,3,4,5번입니다.
+Guide	Guide_End	시작마을에가셔서 호수에있는 NPC에게 말을걸어보세요.
+Tutorial	Tutorial_Start	시작 마을에 어서오세요! 저희 마을에는 처음이신가요? 여기에는 무기상점, 포션상점, 장신구 상점이 있습니다. 한번 둘러보시겠어요? 주위를 구경 해보시고 다시 말을 걸어주세요!
+Tutorial	Tutorial_End	그외에는 아직컨텐츠가 추가가안되서 미흡할수 있으나 재밌게 즐겨주세요! 신입 모험가 지원금으로 300 골드와 경험치 100을 지급해드리겠습니다!
+General	General_1	어? 못보던얼굴인데 이마을에 처음온 이방인인가? 여긴 마을이 좀작긴해도 있을껀 다있다구 시작마을 사람들도 다 좋은편이니 안심 하고 지내다 가게나~
+General	General_2	오늘 날씨가 참좋지않나? 이런날 여관에 가서 맥주한잔 들이키고 싶구만~
+General	General_3	당신 모험가인가? 당신 들고있는 그 대검 엄청 무거워 보이네... 그런걸 어떻게 휘두룰 수 있는거야?
+Smithy	Smithy_Start	어서오게! 우리 대장간의 무기들은 아주 품질이 좋다고! 한번 구경해보겠나?!
+Smithy	Smithy_End	거래 해줘서 고맙네! 다음에도 또 들려주게나!
+Artifact	Artifact_Start	어서오세요. 저희 장신구점은 모험에 도움이되는 효과가 담겨있는 장신구를 팔고있습니다.
+Artifact	Artifact_End	그럼 좋은 여행 되시길 빌겠습니다.
+Potion	Potion_Start	오! 뭐가 필요해서 왔는가? 회복포션? 아니면 마나포션? 포션은 많이 구비 해두었으니 천천히 둘러봐!
+Potion	Potion_End	고맙구만 이걸로 연구비에 보탤 수 있겠어~ 흐흐..
+Wandering	Wandering_Start	어서오세요 저는 각지를 떠돌며 장사를하는 떠돌이 상인입니다. 조촐하지만 필요한게 있을 수 있으니 한번 둘러보세요.
+Wandering	Wandering_End	감사합니다. 당신의 여행길에 행운을 빕니다.
+Guard	Guard_1	마을에서 지내시는건 좋지만 사건을 일으키진 말아주세요 귀찮아지니까요.
+Guard	Guard_2	오늘 뭐좀 잡았나? 너무 무리하진말라구.
+Guard	Guard_3	저도 당신같이 모험을 했던때가 있었죠... 그립네요... 동료들과 사냥을 하다가 무릎에 화살만 맞지 않았더라면.. 후..
+RepeatQuest	RepeatQuest_1_Start	에취! 어우 시발 버섯들이 봄이다되가나 코가 간지럽게 포자를 하루종일 날리고있어! 혹시 안바쁘면 Beginner's Forest 에 가서 노랑무늬버섯놈들 좀 혼내줄 수 있을까? 내가 이렇게 부탁할게!! 부탁이야!
+RepeatQuest	RepeatQuest_1_End	어후 좀살거같네.. 고마워! 개같은놈들 얼마안지나면 또 늘어날텐데 일감필요하면 또언제든지와! 버섯놈들은 죽여도 죽여도 끝이없거든...
+RepeatQuest	RepeatQuest_2_Start	오 모험가 양반! 바쁘지않다면 혹시 일하나 해볼생각 있는가? 야생돼지가 Beginner's Forest 에서 마구 출몰해서 식량으로 도축할려고하는데 나는 고기다룰줄이나 알지 돼지사냥은 영 소질이 없어서 말이야! 하하! 어떤가? 한번 일해보겠나?
+RepeatQuest	RepeatQuest_2_End	오오! 고맙구만! 이걸로 1달치는 팔 수 있겠어~! 많이 할수록 좋으니까 일감이 필요하면 또오게나!!
+NormalQuest	NormalQuest_1_Start	내가 지금 약초를 연구중인데 슬라임이 약초를 닥치는대로 먹어서 곤란한 상황인데 좀도와줄래?
+NormalQuest	NormalQuest_1_End	고마워 덕분에 한시름 놨네. 다음에 또 부탁할일 있으면 부탁좀할게.
+NormalQuest	NormalQuest_2_Start	지금 내가 돈이 부족해서 그런데 회복포션 하나만 사줄수 있을까? 내가 나중에 꼭 보답하지.
+NormalQuest	NormalQuest_2_End	고맙구만 형씨! 덕분에 살았어 별건 아니지만 이거라도 받아줘.
+NormalQuest	NormalQuest_3_Start	저.. 내가 교회에 수녀님에게 반지를 선물 해드리고 싶은데 내가 직접 사러 가기는 좀 쪽팔려서 그런데... 대신구매해줄 수 있을까?
+NormalQuest	NormalQuest_3_End	오..! 고마워! 자 여기 고생한 일당이야! 받아!

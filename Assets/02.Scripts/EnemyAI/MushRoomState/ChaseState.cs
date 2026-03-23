@@ -3,7 +3,9 @@ using UnityEngine.AI;
 
 public class ChaseState : BaseState
 {
-    private static readonly int Walk = Animator.StringToHash("Walk");
+    private static readonly int MoveSpeed = Animator.StringToHash("MoveSpeed");
+    private const float DAMP_TIME = 0.1f;
+
     public override void Initialize(StateControllerParameter parameter)
     {
         base.Initialize(parameter);
@@ -11,7 +13,6 @@ public class ChaseState : BaseState
     
     public override void EnterState()
     {
-        // 타겟이 없거나 또는 시야에 플레이어가 안보일 경우
         if (MushRoom.Target == null || IsPlayerInSight() == false)
         {
             MushRoom.ChangeState<IdleState>();
@@ -20,31 +21,38 @@ public class ChaseState : BaseState
 
         Agent.speed = MushRoom.MoveSpeed * 2.0f;
         Agent.isStopped = false;
-        MushRoomAnimator.SetTrigger(Walk);
     }
 
     public override void UpdateState()
     {
+        MushRoomAnimator.SetFloat(MoveSpeed, 1.5f, DAMP_TIME, Time.deltaTime);
+
         if (MushRoom.Target == null || IsPlayerInSight() == false)
         {
             MushRoom.ChangeState<IdleState>();
             return;
         }
 
-        // 거리 체크를 이동 명령보다 먼저 수행
-        float distance = MushRoom.transform.FlatDistanceTo(MushRoom.Target);
+        if (MushRoom.SpawnPoint != null)
+        {
+            float distanceFromSpawn = Vector3.Distance(MushRoom.transform.position, MushRoom.SpawnPoint.transform.position);
+            if (distanceFromSpawn > MushRoom.SpawnPoint.leashRange)
+            {
+                MushRoom.ChangeState<ReturnState>();
+                return;
+            }
+        }
 
-        if (distance <= Agent.stoppingDistance + 0.2f)
+        float distance = MushRoom.transform.FlatDistanceTo(MushRoom.Target);
+        if (distance <= Agent.stoppingDistance)
         {
             Agent.isStopped = true;
             Agent.velocity = Vector3.zero;
-            Agent.ResetPath(); // 경로 초기화로 완전 정지 보장
-            
+            Agent.ResetPath();
             MushRoom.ChangeState<AttackState>();
             return;
         }
 
-        // 적을 쫒는 로직
         Agent.SetDestination(MushRoom.Target.position);
     }
 

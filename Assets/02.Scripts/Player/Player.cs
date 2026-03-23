@@ -40,12 +40,19 @@ public class Player : SingletonBase<Player>
     {
         LoadPlayerData();
     }
+
+    /// <summary>
+    /// TSV 데이터 기반으로 플레이어의 스탯을 초기 상태로 되돌립니다.
+    /// </summary>
+    public void InitializeDefaultStat()
+    {
+        LoadPlayerData();
+    }
     
     private void LoadPlayerData()
     {
         if (DataManager.Instance == null)
         {
-            Debug.Log("로드할 데이터가 없음.");
             return;
         }
 
@@ -69,11 +76,6 @@ public class Player : SingletonBase<Player>
             MaxExp = Level * 100;
             Gold = stat.Gold;
 
-            Debug.Log($"[Player] 데이터 로드 성공\n" +
-                               $"이름: {Name}, 레벨: {Level}, 골드: {Gold}\n" +
-                                 $"HP: {HP}/{MaxHP}, MP: {MP}/{MaxMP}\n" +
-                                         $"공격력: {ATK}, 방어력: {DEF}");
-            
             // 초기화 후 UI 갱신을 위해 이벤트 호출
             RefreshAllStats();
         }
@@ -101,6 +103,7 @@ public class Player : SingletonBase<Player>
         SP = this.SP,
         Level = this.Level,
         Exp = this.Exp,
+        MaxExp = this.MaxExp,
         Gold = this.Gold
     };
 
@@ -143,6 +146,19 @@ public class Player : SingletonBase<Player>
     
     public void AddExp(int amount) => Exp += amount; // 레벨업 체크는 Controller에서 수행. 여기서 이벤트 호출 안 함 (Controller가 SetExp 호출할 것임)
 
+    // --- 기본 스탯 성장 메서드 (레벨업 전용) ---
+    public void AddBaseATK(float amount)
+    {
+        ATK += amount;
+        OnStatChanged?.Invoke();
+    }
+
+    public void AddBaseDEF(float amount)
+    {
+        DEF += amount;
+        OnStatChanged?.Invoke();
+    }
+
     // --- 스탯 변경 메서드 (PlayerStatusController 전용) ---
     public void AddBonusATK(float amount)
     {
@@ -184,7 +200,6 @@ public class Player : SingletonBase<Player>
     public void AddSP(int amount)
     {
         SP += amount;
-        Debug.Log($"[Cheat] SP {amount} 추가됨. 현재 SP: {SP}");
         OnSpChanged?.Invoke(SP);
     }
 
@@ -206,7 +221,6 @@ public class Player : SingletonBase<Player>
         MaxExp = Level * 100; 
 
         RefreshAllStats();
-        Debug.Log($"[Player] 로드된 스탯 데이터 적용 완료 (Lv.{Level})");
     }
 }
 

@@ -16,7 +16,6 @@ public class SkillDataManager : SingletonBase<SkillDataManager>
 
     protected override void OnInitialize()
     {
-        Debug.Log("[SkillDataManager] 스킬 데이터 로드 시작...");
         LoadSkillData();
     }
 
@@ -45,7 +44,6 @@ public class SkillDataManager : SingletonBase<SkillDataManager>
             else
             {
                 skill.Type = SkillType.Passive; // 기본값
-                Debug.LogWarning($"[SkillData] 알 수 없는 타입: {info.SkillType} (ID: {info.SkillID})");
             }
 
             skill.Level = info.SkillLevel; // 초기 레벨 (TSV에는 보통 0)
@@ -77,8 +75,6 @@ public class SkillDataManager : SingletonBase<SkillDataManager>
                 SkillTable.Add(skill.SkillID, skill);
             }
         }
-
-        Debug.Log($"[SkillDataManager] 스킬 로드 완료: {SkillTable.Count}개");
     }
 
     public Skill GetSkill(int id)
@@ -128,7 +124,7 @@ public class SkillDataManager : SingletonBase<SkillDataManager>
                 skill.Level = saveItem.Level;
             }
         }
-        
-        Debug.Log("[SkillDataManager] 스킬 데이터 복원 완료");
     }
 }
+
+    

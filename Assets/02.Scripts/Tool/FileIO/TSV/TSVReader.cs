@@ -32,7 +32,6 @@ public static class TSVReader
 
         if (File.Exists(filePath) == false)
         {
-            Debug.LogError($"[TableLoader] 파일이 존재하지 않습니다: {filePath}");
             return null;
         }
 
@@ -49,9 +48,8 @@ public static class TSVReader
 
             return records;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Debug.LogError($"[TableReader] {tableName}.tsv 로딩 실패: {ex.Message}");
             return null;
         }
     }
@@ -60,7 +58,6 @@ public static class TSVReader
     {
         if (File.Exists(filePath) == false)
         {
-            Debug.LogError($"[TableReader] 파일이 존재하지 않습니다: {filePath}");
             return null;
         }
 
@@ -70,7 +67,7 @@ public static class TSVReader
             using var csv = new CsvReader(reader, TsvConfig);
 
             var records = new List<T>();
-            
+
             foreach (var record in csv.GetRecords<T>())
             {
                 records.Add(record);
@@ -78,10 +75,11 @@ public static class TSVReader
 
             return records;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Debug.LogError($"[TableLoader] {filePath} 로딩 실패: {ex.Message}");
             return null;
         }
     }
 }
+
+        

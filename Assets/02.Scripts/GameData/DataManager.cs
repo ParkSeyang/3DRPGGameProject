@@ -10,9 +10,27 @@ public class DataManager : SingletonBase<DataManager>
     private string SaveDirectory => Path.Combine(Application.persistentDataPath, "UserData");
     private string SavePath => Path.Combine(SaveDirectory, "SaveData.json");
 
+    // --- 저장 정책 관련 필드 ---
+    public bool CanSave { get; set; } = true; // 기본적으로는 저장 가능 (마을 등)
+    
+    /// <summary>
+    /// 현재 씬이 자유 저장이 가능한 곳인지, 아니면 특정 구역이 필요한 곳인지 판단합니다.
+    /// </summary>
+    public void UpdateSavePolicy(string sceneName)
+    {
+        // 사냥터(BeginnersForest)인 경우 기본적으로 저장을 막음
+        if (sceneName.Contains("BeginnersForest"))
+        {
+            CanSave = false;
+        }
+        else
+        {
+            CanSave = true; // 마을 등은 자유 저장
+        }
+    }
+
     protected override void OnInitialize()
     {
-        Debug.Log("[DataManager] 플레이어 데이터 로드 시작...");
         LoadPlayerTables();
     }
 
@@ -27,7 +45,17 @@ public class DataManager : SingletonBase<DataManager>
         }
 
         JsonWriter.Save(saveData, SavePath);
-        Debug.Log($"[DataManager] 데이터 저장 완료: {SavePath}");
+    }
+
+    /// <summary>
+    /// 기존 세이브 파일을 물리적으로 삭제합니다.
+    /// </summary>
+    public void DeleteSaveData()
+    {
+        if (File.Exists(SavePath) == true)
+        {
+            File.Delete(SavePath);
+        }
     }
 
     public UserSaveData LoadUserData()
@@ -35,11 +63,9 @@ public class DataManager : SingletonBase<DataManager>
         var data = JsonReader.Load<UserSaveData>(SavePath);
         if (data != null)
         {
-            Debug.Log("[DataManager] 데이터 로드 성공");
             return data;
         }
         
-        Debug.LogWarning("[DataManager] 저장된 데이터를 찾을 수 없습니다.");
         return null;
     }
 
@@ -57,14 +83,8 @@ public class DataManager : SingletonBase<DataManager>
                 {
                     PlayerTable.Add(stat.Name, stat);
                 }
-                else
-                {
-                    Debug.LogWarning($"[DataManager] Player Name 중복 발견: {stat.Name}");
-                }
             }
         }
-
-        Debug.Log($"[DataManager] 로드 완료 - Player: {PlayerTable.Count}");
     }
 
     public PlayerStat GetPlayerStat(string name)
@@ -73,7 +93,8 @@ public class DataManager : SingletonBase<DataManager>
         {
             return stat;
         }
-        Debug.LogError($"[DataManager] Player Name {name}을 찾을 수 없습니다.");
         return null;
     }
 }
+
+    

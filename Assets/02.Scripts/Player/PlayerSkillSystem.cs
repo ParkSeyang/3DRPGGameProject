@@ -15,6 +15,15 @@ public class PlayerSkillSystem : MonoBehaviour
 
     private void Update()
     {
+        // 타이틀 씬 혹은 팝업 중 조작 차단
+        string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        bool isTitle = sceneName.Contains("StartGame") || sceneName.Contains("GameStart");
+
+        if (isTitle || (UIManager.IsInitialized && UIManager.Instance.IsPopupOpen))
+        {
+            return;
+        }
+
         // 쿨타임 감소 로직
         if (SkillDataManager.Instance != null)
         {
@@ -39,47 +48,53 @@ public class PlayerSkillSystem : MonoBehaviour
 
         if (SkillTreeSystem.Instance.IsSkillUnlocked(skillID) == false)
         {
-            Debug.LogWarning("해금되지 않은 스킬입니다.");
             return;
         }
 
         var skill = SkillDataManager.Instance.GetSkill(skillID);
         if (skill == null || skill.Type != SkillType.Active)
         {
-            Debug.LogWarning("액티브 스킬만 장착할 수 있습니다.");
             return;
         }
         
         if (skill.Level <= 0)
         {
-            Debug.LogWarning("아직 배우지 않은 스킬입니다.");
             return;
         }
 
-        if (key == "Q") SkillSlot_Q = skillID;
-        else if (key == "E") SkillSlot_E = skillID;
+        if (key == "Q")
+        {
+            SkillSlot_Q = skillID;
+        }
+        else if (key == "E")
+        {
+            SkillSlot_E = skillID;
+        }
         
-        Debug.Log($"[{key}] 슬롯에 {skill.SkillName} 장착 완료");
     }
 
     private void UseSkill(int skillID)
     {
-        if (skillID == 0) return;
+        if (skillID == 0)
+        {
+            return;
+        }
 
         var skill = SkillDataManager.Instance.GetSkill(skillID);
-        if (skill == null || skill.Level == 0) return; 
+        if (skill == null || skill.Level == 0)
+        {
+            return;
+        }
 
         // 쿨타임 체크
         if (skill.IsAvailable == false)
         {
-            Debug.Log($"[Skill] 쿨타임 중... ({skill.CurrentCoolTime:F1}s)");
             return;
         }
 
         // 마나 체크
         if (Player.Instance.MP < skill.MpCost)
         {
-            Debug.Log("[Skill] MP 부족");
             return;
         }
 
@@ -95,3 +110,5 @@ public class PlayerSkillSystem : MonoBehaviour
         }
     }
 }
+
+    

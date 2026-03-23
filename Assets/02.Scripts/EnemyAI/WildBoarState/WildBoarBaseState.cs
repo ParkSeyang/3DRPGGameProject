@@ -12,7 +12,6 @@ public abstract class WildBoarBaseState
         public Collider attackCollider; 
       }
     
-    // 플레이어의 콜라이더를 감지할 배열을 미리 할당해놓는다.
     private readonly Collider[] targetBuffer = new Collider[1];
 
     protected WildBoar WildBoar { get; private set; }
@@ -39,39 +38,44 @@ public abstract class WildBoarBaseState
 
     public bool IsPlayerInSight()
     {
-        int count = Physics.OverlapSphereNonAlloc(WildBoar.EyeTransform.position, WildBoar.DetectionRadius,
+        int detectionCount = Physics.OverlapSphereNonAlloc(WildBoar.EyeTransform.position, WildBoar.DetectionRadius,
             targetBuffer, WildBoar.PlayerLayer);
-        if (count == 0)
-        {
-            return false;
-        }
+        
+        if (detectionCount == 0) return false;
 
-        Transform potentialTarget = targetBuffer[0].transform;
+        Player targetPlayer = targetBuffer[0].GetComponentInParent<Player>();
+        Transform potentialTarget = (targetPlayer != null) ? targetPlayer.transform : targetBuffer[0].transform;
         
         Vector3 targetPosition = potentialTarget.position + Vector3.up * 1.0f;
-
         Vector3 directionToTarget = (targetPosition - WildBoar.EyeTransform.position).normalized;
-
         float angleToTarget = Vector3.Angle(WildBoar.EyeTransform.forward, directionToTarget);
 
-        if (angleToTarget > WildBoar.DetectionAngle / 2.0f)
-        {
-           // Debug.Log($"감지 실패 : 시야각에서 벗어남 {angleToTarget:F1}");
-            return false;
-        }
+        if (angleToTarget > WildBoar.DetectionAngle / 2.0f) return false;
 
         float distanceToTarget = Vector3.Distance(WildBoar.EyeTransform.position, targetPosition);
         
-        
-        if (Physics.Raycast(WildBoar.EyeTransform.position, directionToTarget, 
-                out RaycastHit hit, distanceToTarget, WildBoar.ObstacleLayer))
+        if (Physics.Raycast(WildBoar.EyeTransform.position, directionToTarget, distanceToTarget, WildBoar.ObstacleLayer))
         {
-            Debug.Log($"감지 실패: 장애물에 막힘 ({hit.collider.name})");
             return false;
         }
-        Debug.Log("감지 성공! 추격을 시작합니다");
+
         WildBoar.SetTarget(potentialTarget);
         return true;
     }
 
+    public bool IsMonsterInFront()
+    {
+        Vector3 originPosition = WildBoar.EyeTransform.position;
+        Vector3 checkDirection = WildBoar.transform.forward;
+        float checkDistance = 3.0f; // 멧돼지는 빠르므로 3미터 전방 확인
+
+        if (Physics.SphereCast(originPosition, 0.5f, checkDirection, out RaycastHit enemyHit, checkDistance, WildBoar.EnemyLayer))
+        {
+            if (enemyHit.collider.gameObject != WildBoar.gameObject)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 }

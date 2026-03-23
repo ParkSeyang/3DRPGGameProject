@@ -1,12 +1,12 @@
 using UnityEngine;
 using UnityEngine.AI;
+
 public class WildBoarPatrolState : WildBoarBaseState
 {
-   private static readonly int Walk = Animator.StringToHash("Walk");
+    private static readonly int MoveSpeed = Animator.StringToHash("MoveSpeed");
+    private const float DAMP_TIME = 0.15f;
 
-    // 정찰시 시작 위치
     private Vector3 startPos;
-    // 정찰시 도착해야될 위치
     private Vector3 targetPos;
     
     public override void Initialize(StateControllerParameter parameter)
@@ -16,21 +16,28 @@ public class WildBoarPatrolState : WildBoarBaseState
 
     public override void EnterState()
     {
-        startPos = WildBoar.transform.position;
+        // [수정] 현재 위치가 아닌 '스폰 위치'를 기준으로 시작점 설정
+        startPos = WildBoar.SpawnPoint != null ? WildBoar.SpawnPoint.transform.position : WildBoar.transform.position;
         targetPos = CalculatePatrolDestination();
-        WildBoarAnimator.SetTrigger(Walk);
         
         Agent.speed = WildBoar.MoveSpeed;
         Agent.SetDestination(targetPos);
         Agent.isStopped = false;
-        
     }
 
     public override void UpdateState()
     {
+        WildBoarAnimator.SetFloat(MoveSpeed, 1f, DAMP_TIME, Time.deltaTime);
+
         if (IsPlayerInSight())
         {
             WildBoar.ChangeState<WildBoarChaseState>();
+            return;
+        }
+
+        if (IsMonsterInFront())
+        {
+            WildBoar.ChangeState<WildBoarIdleState>();
             return;
         }
 
@@ -38,7 +45,6 @@ public class WildBoarPatrolState : WildBoarBaseState
         {
             WildBoar.ChangeState<WildBoarIdleState>();
         }
-        
     }
 
     public override void ExitState()
@@ -50,34 +56,22 @@ public class WildBoarPatrolState : WildBoarBaseState
         }
     }
     
-    
-    // 8방향 체크 및 장애물 회피 이동 위치 계산
     private Vector3 CalculatePatrolDestination()
     {
-        int randomDirIndex = Random.Range(0, 8);
-        float angle = randomDirIndex * 45f;
-        Vector3 direction = Quaternion.Euler(0, angle, 0) * Vector3.forward;
-        float moveDistance = WildBoar.PatrolRadius;
-
-        Vector3 origin = startPos + Vector3.up * 0.5f;
-        
-        // 장애물을 체크하는 로직 : 장애물이 있으면 그앞 까지만 이동하도록 해줌
-        if (Physics.Raycast(origin, direction, out RaycastHit hit, moveDistance, WildBoar.ObstacleLayer))
+        Vector3 finalPos = startPos;
+        int maxAttempts = 10;
+        for (int i = 0; i < maxAttempts; i++)
         {
-            float safeDist = Mathf.Max(0, hit.distance - Agent.radius);
-            return startPos + (direction * safeDist);
+            float randomAngle = Random.Range(0f, 360f);
+            Vector3 direction = Quaternion.Euler(0, randomAngle, 0) * Vector3.forward;
+            float minDistance = WildBoar.PatrolRadius * 0.5f;
+            float moveDistance = Random.Range(minDistance, WildBoar.PatrolRadius);
+            Vector3 candidatePos = startPos + (direction * moveDistance);
+            if (Physics.Raycast(startPos + Vector3.up * 0.5f, direction, out RaycastHit hit, moveDistance, WildBoar.ObstacleLayer))
+                candidatePos = hit.point - (direction * 0.5f);
+            if (NavMesh.SamplePosition(candidatePos, out NavMeshHit navHit, 5.0f, NavMesh.AllAreas))
+                if (Vector3.Distance(startPos, navHit.position) > 4.0f) return navHit.position;
         }
-
-        Vector3 finalPos = startPos + (direction * moveDistance);
-        
-        // NavMesh 위인지 확인
-        if (NavMesh.SamplePosition(finalPos, out NavMeshHit navHit, 2.0f, NavMesh.AllAreas))
-        {
-            return navHit.position;
-        }
-
         return startPos;
-
     }
-
 }

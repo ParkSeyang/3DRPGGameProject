@@ -21,7 +21,7 @@ MonoBehaviour:
   MpCost: 15
   Value: 30
   Icon: {fileID: 21300000, guid: 84a9053f62d1a18439538919cb3b1fd9, type: 3}
-  EffectPrefab: {fileID: 1872147318604286, guid: 5bea49531fc500c408823a2e2863106f, type: 3}
+  EffectPrefab: {fileID: 1652400581503036, guid: bccbf92079918d54993ff625428e9f93, type: 3}
   Description: "\uB300\uAC80 \uC77C\uACA9 : \uAC80\uC73C\uB85C \uC804\uBC29\uC744
     \uD718\uB458\uB7EC \uC8FC\uC704\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C\uC900\uB2E4.
     \uC2A4\uD0AC\uACF5\uACA9\uB825  * \uD604\uC7AC \uC2A4\uD0AC\uB808\uBCA8 \uB9CC\uD07C

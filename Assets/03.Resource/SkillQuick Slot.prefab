@@ -35,7 +35,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0.1593, y: -0.5749}
-  m_SizeDelta: {x: 81.6385, y: 79.0064}
+  m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8377219744726698432
 CanvasRenderer:
@@ -59,14 +59,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 0.52201253, g: 0.52037096, b: 0.52037096, a: 0.49019608}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  m_Type: 3
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -184,8 +184,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 24.77, y: -21.72}
-  m_SizeDelta: {x: 50, y: 43.4408}
+  m_AnchoredPosition: {x: 0.919, y: 0.0000019073}
+  m_SizeDelta: {x: 81.4417, y: 43.4408}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &7423496097709397368
 CanvasRenderer:
@@ -381,3 +381,4 @@ MonoBehaviour:
   KeyName: Q
   iconImage: {fileID: 5914008995803157075}
   coolTimeImage: {fileID: 8328231457284786381}
+  coolTimeText: {fileID: 7117442190673097862}

@@ -7,6 +7,8 @@ public class PlayerSkillController : MonoBehaviour, ICombatAgent
     private AnimEventReceiver animEventReceiver;
     private Skill currentSkill; // 현재 시전 중인 스킬
 
+    public bool IsCasting { get; private set; } // [추가] 스킬 시전 상태 플래그
+
     private void Awake()
     {
         animator = GetComponent<Animator>();
@@ -32,9 +34,15 @@ public class PlayerSkillController : MonoBehaviour, ICombatAgent
     // PlayerSkillSystem에서 호출
     public void ExecuteSkill(Skill skill, string triggerName)
     {
+        IsCasting = true; // [추가] 시전 시작
         currentSkill = skill;
         animator.SetTrigger(triggerName);
-        Debug.Log($"[SkillController] {skill.SkillName} 애니메이션 트리거: {triggerName}");
+    }
+
+    // 외부에서 스킬을 강제로 중단시킬 때 사용 (피격 등)
+    public void CancelSkill()
+    {
+        IsCasting = false;
     }
 
     // 기존 PlayerAttack의 방식을 응용한 이벤트 수신처
@@ -43,54 +51,35 @@ public class PlayerSkillController : MonoBehaviour, ICombatAgent
         // 애니메이션 이벤트(AnimTriggerEventSender)에서 "Skill_Cast" 파라미터를 보낼 때 발동
         if (parameter.Equals("Skill_Cast"))
         {
-            SpawnSkillEffect();
+            InvokeSkillEvent();
+        }
+        else if (parameter.Equals("Skill_End")) // [추가] 애니메이터에서 시전 종료 이벤트 수신
+        {
+            IsCasting = false;
         }
         
         // 필요하다면 Attack_Start / Attack_End 처럼 스킬 히트박스를 정교하게 제어할 수도 있습니다.
-        Debug.Log($"[Skill Event] Received: {parameter}");
     }
 
-    private void SpawnSkillEffect()
+    private void InvokeSkillEvent()
     {
-        if (currentSkill == null || currentSkill.EffectPrefab == null) return;
+        if (currentSkill == null) return;
 
-        // 이펙트 생성 위치 (기본 높이는 1.0f)
-        float yOffset = 1.0f;
-        
-        // 4번 스킬(대지분쇄)은 바닥에서 터져야 하므로 높이를 낮춤
-        if (currentSkill.SkillID == 4) yOffset = 0.1f;
-
-        Vector3 spawnPos = transform.position + transform.forward * 3.0f + Vector3.up * yOffset;
-        
-        // 회전값 계산
-        Quaternion spawnRot = transform.rotation;
-
-        // 스킬별 회전 보정 (검의 궤적에 맞추기)
-        if (currentSkill.SkillID == 2) // SwordSlash
+        // [옵저버 패턴] 스킬 이벤트 발생
+        // HitInfo에 시전자 정보(gameObject, position)를 실어서 Binder에 전달
+        HitInfo castInfo = new HitInfo
         {
-            spawnRot *= Quaternion.Euler(0, 0, 45); // 사선 베기 (각도는 프리팹에 맞게 조절)
-        }
-        
-        GameObject effectObj = Instantiate(currentSkill.EffectPrefab, spawnPos, spawnRot);
+            gameObject = this.gameObject,
+            position = transform.position
+        };
 
-        // 스킬 이펙트 사이즈 대폭 확대 (균등하게 5배)
-        // ※ 프리팹 내부 자식들의 스케일이 (1,1,1)이 아닌 경우 비정상적으로 보일 수 있음
-        effectObj.transform.localScale = Vector3.one * 5.0f; 
-
-        // HitBox 초기화
-        var hitBox = effectObj.GetComponent<HitBox>();
-        if (hitBox != null)
+        CombatEvent skillEvent = new CombatEvent
         {
-            hitBox.Initialize(this); // 나(PlayerSkillController)를 주인으로 설정
-            hitBox.EnableDetection(); // 즉시 판정 시작
-        }
-        else
-        {
-            Debug.LogWarning($"[Skill] {currentSkill.SkillName} 프리팹에 HitBox가 없습니다. 데미지가 들어가지 않습니다.");
-        }
+            Sender = this,
+            HitInfo = castInfo
+        };
 
-        // 2초 뒤 삭제
-        Destroy(effectObj, 2.0f);
+        CombatSystem.Instance.Subscribe.OnSomeoneCastSkill?.Invoke(skillEvent, currentSkill);
     }
 
     // --- ICombatAgent Implementation ---
@@ -114,7 +103,7 @@ public class PlayerSkillController : MonoBehaviour, ICombatAgent
         combatEvent.HitInfo = hitInfo;
 
         CombatSystem.Instance.AddCombatEvent(combatEvent);
-        
-        Debug.Log($"[Skill Hit] {currentSkill.SkillName} (Lv.{currentSkill.Level}) 적중! 대상: {hitInfo.receiver}, 데미지: {damage}");
     }
 }
+
+    

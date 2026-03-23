@@ -25,18 +25,16 @@ public class ItemDataManager : SingletonBase<ItemDataManager>
 
         if (list == null)
         {
-            Debug.LogError("[ItemDataManager] TSV 파일을 로드하지 못했습니다.");
             return;
         }
 
         foreach (var info in list)
         {
-            if (!itemInfoTable.ContainsKey(info.ItemID))
+            if (itemInfoTable.ContainsKey(info.ItemID) == false)
             {
                 itemInfoTable.Add(info.ItemID, info);
             }
         }
-        Debug.Log($"[ItemDataManager] TSV 로드 완료: {itemInfoTable.Count}개");
     }
 
     private void LoadItemResources()
@@ -58,17 +56,13 @@ public class ItemDataManager : SingletonBase<ItemDataManager>
                 item.Description = info.Description;
                 item.MaxStack = info.Stack;
 
-                if (!itemResourceTable.ContainsKey(item.ItemID))
+                if (itemResourceTable.ContainsKey(item.ItemID) == false)
                 {
                     itemResourceTable.Add(item.ItemID, item);
                 }
             }
-            else
-            {
-                Debug.LogWarning($"[ItemDataManager] SO의 ItemID({item.ItemID})와 일치하는 TSV 데이터를 찾을 수 없습니다.");
-            }
+            
         }
-        Debug.Log($"[ItemDataManager] 리소스 매칭 및 데이터 주입 완료: {itemResourceTable.Count}개");
     }
 
     public Item GetItem(string itemId)

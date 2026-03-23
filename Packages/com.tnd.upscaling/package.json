@@ -1,6 +1,6 @@
 {
   "name": "com.tnd.upscaling",
-  "version": "1.0.7",
+  "version": "1.0.9",
   "displayName": "TND Upscaler Framework",
   "description": "Upscaling Framework for integrating upscaling in URP & HDRP",
   "unity": "2021.3",

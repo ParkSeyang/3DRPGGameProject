@@ -39,7 +39,17 @@ namespace TND.Upscaling.Framework.HDRP
         {
             // DLSS has enabled and needs top priority for the TND upscalers to be activated
             bool dlssEnabled = false;
-#if UNITY_2023_2_OR_NEWER
+
+#if UNITY_6000_3_OR_NEWER
+            var dynamicResolutionSettings = renderPipelineSettings.dynamicResolutionSettings;
+            if (dynamicResolutionSettings.advancedUpscalerNames != null && dynamicResolutionSettings.advancedUpscalerNames.Count > 0)
+            {
+                if (dynamicResolutionSettings.advancedUpscalerNames[0] == AdvancedUpscalers.DLSS.ToString())
+                {
+                    dlssEnabled = true;
+                }
+            }
+#elif UNITY_2023_2_OR_NEWER
             var dynamicResolutionSettings = renderPipelineSettings.dynamicResolutionSettings;
             if (dynamicResolutionSettings.advancedUpscalersByPriority != null && dynamicResolutionSettings.advancedUpscalersByPriority.Count > 0)
             {

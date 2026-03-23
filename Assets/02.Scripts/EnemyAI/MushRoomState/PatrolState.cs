@@ -3,12 +3,11 @@ using UnityEngine.AI;
 
 public class PatrolState : BaseState
 {
-    private static readonly int Walk = Animator.StringToHash("Walk");
+    private static readonly int MoveSpeed = Animator.StringToHash("MoveSpeed");
+    private const float DAMP_TIME = 0.15f;
 
-    // 정찰시 시작 위치
-    private Vector3 startPos;
-    // 정찰시 도착해야될 위치
-    private Vector3 targetPos;
+    private Vector3 startPosition;
+    private Vector3 targetPosition;
     
     public override void Initialize(StateControllerParameter parameter)
     {
@@ -17,21 +16,28 @@ public class PatrolState : BaseState
 
     public override void EnterState()
     {
-        startPos = MushRoom.transform.position;
-        targetPos = CalculatePatrolDestination();
+        // [수정] 현재 위치가 아닌 '스폰 위치'를 기준으로 시작점 설정
+        startPosition = MushRoom.SpawnPoint != null ? MushRoom.SpawnPoint.transform.position : MushRoom.transform.position;
+        targetPosition = CalculatePatrolDestination();
         
         Agent.speed = MushRoom.MoveSpeed;
-        Agent.SetDestination(targetPos);
+        Agent.SetDestination(targetPosition);
         Agent.isStopped = false;
-        
-        MushRoomAnimator.SetTrigger(Walk);
     }
 
     public override void UpdateState()
     {
+        MushRoomAnimator.SetFloat(MoveSpeed, 1f, DAMP_TIME, Time.deltaTime);
+
         if (IsPlayerInSight())
         {
             MushRoom.ChangeState<ChaseState>();
+            return;
+        }
+
+        if (IsMonsterInFront())
+        {
+            MushRoom.ChangeState<IdleState>();
             return;
         }
 
@@ -39,7 +45,6 @@ public class PatrolState : BaseState
         {
             MushRoom.ChangeState<IdleState>();
         }
-        
     }
 
     public override void ExitState()
@@ -51,35 +56,24 @@ public class PatrolState : BaseState
         }
     }
     
-    
-    // 8방향 체크 및 장애물 회피 이동 위치 계산
     private Vector3 CalculatePatrolDestination()
     {
-        int randomDirIndex = Random.Range(0, 8);
-        float angle = randomDirIndex * 45f;
-        Vector3 direction = Quaternion.Euler(0, angle, 0) * Vector3.forward;
-        float moveDistance = MushRoom.PatrolRadius;
-
-        Vector3 origin = startPos + Vector3.up * 0.5f;
-        
-        // 장애물을 체크하는 로직 : 장애물이 있으면 그앞 까지만 이동하도록 해줌
-        if (Physics.Raycast(origin, direction, out RaycastHit hit, moveDistance, MushRoom.ObstacleLayer))
+        Vector3 finalPosition = startPosition;
+        int maxAttempts = 10;
+        for (int i = 0; i < maxAttempts; i++)
         {
-            float safeDist = Mathf.Max(0, hit.distance - Agent.radius);
-            return startPos + (direction * safeDist);
+            float randomAngle = Random.Range(0f, 360f);
+            Vector3 randomDirection = Quaternion.Euler(0, randomAngle, 0) * Vector3.forward;
+            float minPatrolDistance = MushRoom.PatrolRadius * 0.3f;
+            float moveDistance = Random.Range(minPatrolDistance, MushRoom.PatrolRadius);
+            Vector3 candidatePosition = startPosition + (randomDirection * moveDistance);
+            
+            if (Physics.Raycast(startPosition + Vector3.up * 0.5f, randomDirection, out RaycastHit hitInfo, moveDistance, MushRoom.ObstacleLayer))
+                candidatePosition = hitInfo.point - (randomDirection * 0.5f);
+            
+            if (NavMesh.SamplePosition(candidatePosition, out NavMeshHit navMeshHit, 5.0f, NavMesh.AllAreas))
+                if (Vector3.Distance(startPosition, navMeshHit.position) > 2.0f) return navMeshHit.position;
         }
-
-        Vector3 finalPos = startPos + (direction * moveDistance);
-        
-        // NavMesh 위인지 확인
-        if (NavMesh.SamplePosition(finalPos, out NavMeshHit navHit, 2.0f, NavMesh.AllAreas))
-        {
-            return navHit.position;
-        }
-
-        return startPos;
-
+        return startPosition;
     }
-
-
 }

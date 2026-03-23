@@ -1289,9 +1289,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   upscalerChain:
+  - TND.Upscaling.FSR3.FSR3UpscalerPlugin
   - TND.Upscaling.DLSS4.DLSS4UpscalerPlugin
   - TND.Upscaling.XeSS2.XeSS2UpscalerPlugin
-  - TND.Upscaling.FSR3.FSR3UpscalerPlugin
   - TND.Upscaling.SGSR2.SGSR2UpscalerPlugin
   - TND.Upscaling.SGSR1.SGSR1UpscalerPlugin
   qualityMode: 3

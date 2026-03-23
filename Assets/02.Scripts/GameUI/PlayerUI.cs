@@ -5,6 +5,7 @@ using TMPro;
 public class PlayerUI : BaseUI
 {
     public override UIType UIType => UIType.HUD;
+    public override bool IsPopup => false; 
 
     [Header("Bars")]
     [SerializeField] private Image hpBar;
@@ -16,40 +17,52 @@ public class PlayerUI : BaseUI
     [SerializeField] private TextMeshProUGUI levelText;
     [SerializeField] private TextMeshProUGUI goldText;
 
-    private void Start()
+    private void OnEnable()
     {
-        // Player의 이벤트 구독
+        // UI가 활성화되는 즉시 최신 데이터를 끌어옵니다.
         if (Player.Instance != null)
         {
-            Player.Instance.OnNameChanged += UpdateNameUI;
-            Player.Instance.OnHpChanged += UpdateHpUI;
-            Player.Instance.OnMpChanged += UpdateMpUI;
-            Player.Instance.OnExpChanged += UpdateExpUI;
-            Player.Instance.OnLevelChanged += UpdateLevelUI;
-            Player.Instance.OnGoldChanged += UpdateGoldUI;
-            Player.Instance.OnStatChanged += RefreshAll;
-
-            // 초기값 갱신
-            RefreshAll();
+            RegisterEvents();
+            // Refresh는 BaseUI.Open()에서 호출됨
         }
-        
-        // HUD는 기본적으로 열려있어야 함
-        Open();
     }
 
-    private void OnDestroy()
+    private void OnDisable()
     {
-        // 이벤트 구독 해제
-        if (Player.Instance != null)
+        // 파괴되는 중이거나 인스턴스가 없을 때의 예외 처리 강화
+        if (Player.IsInitialized == true && Player.Instance != null)
         {
-            Player.Instance.OnNameChanged -= UpdateNameUI;
-            Player.Instance.OnHpChanged -= UpdateHpUI;
-            Player.Instance.OnMpChanged -= UpdateMpUI;
-            Player.Instance.OnExpChanged -= UpdateExpUI;
-            Player.Instance.OnLevelChanged -= UpdateLevelUI;
-            Player.Instance.OnGoldChanged -= UpdateGoldUI;
-            Player.Instance.OnStatChanged -= RefreshAll;
+            UnregisterEvents();
         }
+    }
+
+    private void RegisterEvents()
+    {
+        if (Player.Instance == null) return;
+        
+        Player.Instance.OnNameChanged += UpdateNameUI;
+        Player.Instance.OnHpChanged += UpdateHpUI;
+        Player.Instance.OnMpChanged += UpdateMpUI;
+        Player.Instance.OnExpChanged += UpdateExpUI;
+        Player.Instance.OnLevelChanged += UpdateLevelUI;
+        Player.Instance.OnGoldChanged += UpdateGoldUI;
+        Player.Instance.OnStatChanged += RefreshAll;
+    }
+
+    private void UnregisterEvents()
+    {
+        Player.Instance.OnNameChanged -= UpdateNameUI;
+        Player.Instance.OnHpChanged -= UpdateHpUI;
+        Player.Instance.OnMpChanged -= UpdateMpUI;
+        Player.Instance.OnExpChanged -= UpdateExpUI;
+        Player.Instance.OnLevelChanged -= UpdateLevelUI;
+        Player.Instance.OnGoldChanged -= UpdateGoldUI;
+        Player.Instance.OnStatChanged -= RefreshAll;
+    }
+
+    public override void Refresh()
+    {
+        RefreshAll();
     }
 
     private void RefreshAll()

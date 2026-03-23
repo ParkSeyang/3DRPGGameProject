@@ -57,6 +57,11 @@ namespace TND.Upscaling.Framework
         XeSS2 = 42000,
         
         /// <summary>
+        /// Intel Xe Super Sampling 2.x (ML-based temporal upscaling)
+        /// </summary>
+        XeSS3 = 43000,
+        
+        /// <summary>
         /// Snapdragon Game Super Resolution 1 (mobile-optimized spatial upscaling)
         /// </summary>
         SGSR1 = 51000,

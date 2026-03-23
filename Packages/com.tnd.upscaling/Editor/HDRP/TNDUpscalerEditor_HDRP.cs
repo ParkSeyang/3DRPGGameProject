@@ -22,7 +22,7 @@ namespace TND.Upscaling.Framework.HDRP
         protected override void OnEnable()
         {
             base.OnEnable();
-            
+
             if (GraphicsSettings.currentRenderPipeline is not HDRenderPipelineAsset currentRenderPipeline)
                 return;
 
@@ -73,12 +73,12 @@ namespace TND.Upscaling.Framework.HDRP
                 {
                     return false;
                 }
-                
+
                 _serializedPipelineAsset.Update();
 
                 SerializedProperty serializedPipelineSettings = _serializedPipelineAsset.FindProperty("m_RenderPipelineSettings");
                 SerializedProperty serializedDynamicResolution = serializedPipelineSettings.FindPropertyRelative(nameof(RenderPipelineSettings.dynamicResolutionSettings));
-          
+
                 bool changedSetting = false;
 
                 // ERRORS
@@ -224,9 +224,34 @@ namespace TND.Upscaling.Framework.HDRP
             _serializedCameraData.FindProperty(nameof(HDAdditionalCameraData.deepLearningSuperSamplingUseCustomAttributes)).boolValue = false;
             _serializedCameraData.FindProperty(nameof(HDAdditionalCameraData.deepLearningSuperSamplingUseOptimalSettings)).boolValue = false;
 
-#if UNITY_2023_2_OR_NEWER
+#if UNITY_6000_3_OR_NEWER
+            SerializedProperty serializedList = serializedDynamicResolution.FindPropertyRelative(nameof(GlobalDynamicResolutionSettings.advancedUpscalerNames));
+           
+            // See if DLSS already exists in the priority list
+            int dlssIndex = -1;
+            for (int index = 0; index < serializedList.arraySize; ++index)
+            {
+                if (serializedList.GetArrayElementAtIndex(index).stringValue == AdvancedUpscalers.DLSS.ToString())
+                {
+                    dlssIndex = index;
+                    break;
+                }
+            }
+
+            if (dlssIndex >= 0)
+            {
+                // Move DLSS to the top of the priority list
+                serializedList.MoveArrayElement(dlssIndex, 0);
+            }
+            else
+            {
+                // Add DLSS as the top entry in the list
+                serializedList.InsertArrayElementAtIndex(0);
+                serializedList.GetArrayElementAtIndex(0).stringValue = AdvancedUpscalers.DLSS.ToString();
+            }
+#elif UNITY_2023_2_OR_NEWER
             SerializedProperty serializedList = serializedDynamicResolution.FindPropertyRelative(nameof(GlobalDynamicResolutionSettings.advancedUpscalersByPriority));
-            
+
             // See if DLSS already exists in the priority list
             int dlssIndex = -1;
             for (int index = 0; index < serializedList.arraySize; ++index)
@@ -272,14 +297,14 @@ namespace TND.Upscaling.Framework.HDRP
 
             // Custom Pass, allows opaque-only copy pass
             serializedPipelineSettings.FindPropertyRelative(nameof(RenderPipelineSettings.supportCustomPass)).boolValue = true;
-            
+
             // Disable multi-sample anti-aliasing
             serializedPipelineSettings.FindPropertyRelative(nameof(RenderPipelineSettings.msaaSampleCount)).SetEnumValue(MSAASamples.None);
             _serializedCamera.FindProperty("m_AllowMSAA").boolValue = false;
 
             _serializedCameraData.ApplyModifiedProperties();
             EditorUtility.SetDirty(_serializedCameraData.targetObject);
-            
+
             _serializedCamera.ApplyModifiedProperties();
             EditorUtility.SetDirty(_serializedCamera.targetObject);
         }

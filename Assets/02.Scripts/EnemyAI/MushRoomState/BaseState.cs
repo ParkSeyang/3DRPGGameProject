@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System;
 using System.Collections.Generic;
 using UnityEngine.AI;
@@ -14,7 +14,6 @@ public abstract class BaseState
         public Collider attackCollider;
     }
     
-    // 플레이어의 콜라이더를 감지할 배열을 미리 할당해놓는다.
     private readonly Collider[] targetBuffer = new Collider[1];
     
     protected Mushroom MushRoom { get; private set; }
@@ -41,39 +40,44 @@ public abstract class BaseState
 
     public bool IsPlayerInSight()
     {
-        int count = Physics.OverlapSphereNonAlloc(MushRoom.EyeTransform.position, MushRoom.DetectionRadius,
+        int detectionCount = Physics.OverlapSphereNonAlloc(MushRoom.EyeTransform.position, MushRoom.DetectionRadius,
             targetBuffer, MushRoom.PlayerLayer);
-        if (count == 0)
-        {
-            return false;
-        }
+        
+        if (detectionCount == 0) return false;
 
-        Transform potentialTarget = targetBuffer[0].transform;
+        Player targetPlayer = targetBuffer[0].GetComponentInParent<Player>();
+        Transform potentialTarget = (targetPlayer != null) ? targetPlayer.transform : targetBuffer[0].transform;
         
         Vector3 targetPosition = potentialTarget.position + Vector3.up * 1.0f;
-
         Vector3 directionToTarget = (targetPosition - MushRoom.EyeTransform.position).normalized;
-
         float angleToTarget = Vector3.Angle(MushRoom.EyeTransform.forward, directionToTarget);
 
-        if (angleToTarget > MushRoom.DetectionAngle / 2.0f)
-        {
-           // Debug.Log($"감지 실패 : 시야각에서 벗어남 {angleToTarget:F1}");
-            return false;
-        }
+        if (angleToTarget > MushRoom.DetectionAngle / 2.0f) return false;
 
         float distanceToTarget = Vector3.Distance(MushRoom.EyeTransform.position, targetPosition);
         
-        
-        if (Physics.Raycast(MushRoom.EyeTransform.position, directionToTarget, 
-                out RaycastHit hit, distanceToTarget, MushRoom.ObstacleLayer))
+        if (Physics.Raycast(MushRoom.EyeTransform.position, directionToTarget, distanceToTarget, MushRoom.ObstacleLayer))
         {
-            Debug.Log($"감지 실패: 장애물에 막힘 ({hit.collider.name})");
             return false;
         }
-        Debug.Log("감지 성공! 추격을 시작합니다");
+
         MushRoom.SetTarget(potentialTarget);
         return true;
     }
-
+        
+    public bool IsMonsterInFront()
+    {
+        Vector3 originPosition = MushRoom.EyeTransform.position;
+        Vector3 checkDirection = MushRoom.transform.forward;
+        float checkDistance = 2.0f; 
+        
+        if (Physics.SphereCast(originPosition, 0.5f, checkDirection, out RaycastHit enemyHit, checkDistance, MushRoom.EnemyLayer))
+        {
+            if (enemyHit.collider.gameObject != MushRoom.gameObject)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 }

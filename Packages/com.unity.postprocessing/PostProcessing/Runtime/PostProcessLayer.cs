@@ -209,6 +209,7 @@ namespace UnityEngine.Rendering.PostProcessing
         CommandBuffer m_LegacyCmdBufferBeforeReflections;
         CommandBuffer m_LegacyCmdBufferBeforeLighting;
         CommandBuffer m_LegacyCmdBufferOpaque;
+        CommandBuffer m_LegacyCmdBufferTransparent;
         CommandBuffer m_LegacyCmdBuffer;
         Camera m_Camera;
         PostProcessRenderContext m_CurrentContext;
@@ -254,6 +255,7 @@ namespace UnityEngine.Rendering.PostProcessing
             m_LegacyCmdBufferBeforeReflections = new CommandBuffer { name = "Deferred Ambient Occlusion" };
             m_LegacyCmdBufferBeforeLighting = new CommandBuffer { name = "Deferred Ambient Occlusion" };
             m_LegacyCmdBufferOpaque = new CommandBuffer { name = "Opaque Only Post-processing" };
+            m_LegacyCmdBufferTransparent = new CommandBuffer { name = "Before Transparent Only Post-processing" };
             m_LegacyCmdBuffer = new CommandBuffer { name = "Post-processing" };
 
             m_Camera = GetComponent<Camera>();
@@ -265,6 +267,7 @@ namespace UnityEngine.Rendering.PostProcessing
             m_Camera.AddCommandBuffer(CameraEvent.BeforeReflections, m_LegacyCmdBufferBeforeReflections);
             m_Camera.AddCommandBuffer(CameraEvent.BeforeLighting, m_LegacyCmdBufferBeforeLighting);
             m_Camera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, m_LegacyCmdBufferOpaque);
+            m_Camera.AddCommandBuffer(CameraEvent.BeforeForwardAlpha, m_LegacyCmdBufferTransparent);
             m_Camera.AddCommandBuffer(CameraEvent.BeforeImageEffects, m_LegacyCmdBuffer);
 
             // Internal context used if no SRP is set
@@ -452,6 +455,8 @@ namespace UnityEngine.Rendering.PostProcessing
                     m_Camera.RemoveCommandBuffer(CameraEvent.BeforeLighting, m_LegacyCmdBufferBeforeLighting);
                 if (m_LegacyCmdBufferOpaque != null)
                     m_Camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, m_LegacyCmdBufferOpaque);
+                if (m_LegacyCmdBufferTransparent != null)
+                    m_Camera.RemoveCommandBuffer(CameraEvent.BeforeForwardAlpha, m_LegacyCmdBufferTransparent);
                 if (m_LegacyCmdBuffer != null)
                     m_Camera.RemoveCommandBuffer(CameraEvent.BeforeImageEffects, m_LegacyCmdBuffer);
             }
@@ -644,6 +649,7 @@ namespace UnityEngine.Rendering.PostProcessing
             m_LegacyCmdBufferBeforeReflections.Clear();
             m_LegacyCmdBufferBeforeLighting.Clear();
             m_LegacyCmdBufferOpaque.Clear();
+            m_LegacyCmdBufferTransparent.Clear();
             m_LegacyCmdBuffer.Clear();
 
             SetupContext(context);
@@ -759,7 +765,8 @@ namespace UnityEngine.Rendering.PostProcessing
             if (context.IsUpscalingActive() && upscaling.EnableOpaqueOnlyCopy)
             {
                 m_opaqueOnly = context.GetScreenSpaceTemporaryRT(colorFormat: sourceFormat);
-                m_LegacyCmdBufferOpaque.BuiltinBlit(cameraTarget, m_opaqueOnly);
+                //m_LegacyCmdBufferOpaque.BuiltinBlit(cameraTarget, m_opaqueOnly);
+                m_LegacyCmdBufferTransparent.BuiltinBlit(cameraTarget, m_opaqueOnly);
             }
 
             // Post-transparency stack

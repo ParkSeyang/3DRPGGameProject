@@ -72062,6 +72062,7 @@ GameObject:
   - component: {fileID: 3391673586662985985}
   - component: {fileID: 3391673586662985986}
   - component: {fileID: 3391673586662985987}
+  - component: {fileID: 3391673586662985988}
   m_Layer: 0
   m_Name: Character_Hero_Knight_Male
   m_TagString: Untagged
@@ -73558,6 +73559,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 37b0a86a8a3793b4db55495d612798bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
+  walkSpeed: 10
+  runSpeed: 20
+  gravityScale: 5
+  groundCheckDistance: 0.5
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!114 &3391673586662985985
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -73570,6 +73578,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e68776e4f1d414b9fa245780708b414, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAttack
+  attackSpeeds:
+  - 3
+  - 2.5
+  - 1.2
+  - 5
+  - 5
+  - 1.3
+  - 3.5
+  weaponCollider: {fileID: 0}
 --- !u!114 &3391673586662985986
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -73582,6 +73599,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe886610bf822134cb5ae3af909936eb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerGuard
+  playerAnimator: {fileID: 0}
+  animEventReceiver: {fileID: 0}
+  guardCollider: {fileID: 0}
+  effectPoint: {fileID: 0}
+  bodyHurtBoxes: []
 --- !u!114 &3391673586662985987
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -73597,10 +73619,38 @@ MonoBehaviour:
   cameraTarget: {fileID: 3391673586662985981}
   cameraTransform: {fileID: 1033284445}
   headPivotTransform: {fileID: 307134860}
+  cameraPivotTransform: {fileID: 0}
   horizontalSensitivity: 1
   verticalSensitivity: 1
   minAngleX: -60
   maxAngleX: 60
+--- !u!54 &3391673586662985988
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3388014041944584599}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!4 &3391675865360113361
 Transform:
   m_ObjectHideFlags: 0

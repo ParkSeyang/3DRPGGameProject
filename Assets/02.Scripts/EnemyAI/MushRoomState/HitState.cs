@@ -1,38 +1,37 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class HitState : BaseState
-{
+{ 
+    private static readonly int MoveSpeed = Animator.StringToHash("MoveSpeed");
     private static readonly int Hit = Animator.StringToHash("Hit");
     private const string HIT_ANIM_END = "Hit_End";
-    public override void Initialize(StateControllerParameter parameter)
-    {
-        base.Initialize(parameter);
-    }
+    
+    public override void Initialize(StateControllerParameter parameter) => base.Initialize(parameter);
     
     public override void EnterState()
-    {
-        if (Agent.isOnNavMesh)
+    { 
+        MushRoomAnimator.SetFloat(MoveSpeed, 0f);
+        
+        if (Agent.isOnNavMesh == true)
         {
             Agent.isStopped = true;
             Agent.ResetPath();
         }
 
-        AttackCollider.enabled = false;
-
-        AnimEventReceiver.OnAnimationTriggerReceived += OnTriggeredEvent;
+        // [추가] 피격 시 즉시 플레이어를 바라봄
+        if (MushRoom.Target != null)
+        {
+            MushRoom.transform.rotation = MushRoom.transform.FlatRotationTo(MushRoom.Target);
+        }
         
+        AttackCollider.enabled = false;
+        AnimEventReceiver.OnAnimationTriggerReceived += OnTriggeredEvent;
         MushRoomAnimator.SetTrigger(Hit);
-        Debug.Log($"한대 맞앗다 {Hit}");
     }
 
-    public override void UpdateState()
-    {
-    }
+    public override void UpdateState() { } 
 
-    public override void ExitState()
-    {
-        AnimEventReceiver.OnAnimationTriggerReceived -= OnTriggeredEvent;
-    }
+    public override void ExitState() => AnimEventReceiver.OnAnimationTriggerReceived -= OnTriggeredEvent;
 
     private void OnTriggeredEvent(string animEvent)
     {
@@ -40,15 +39,27 @@ public class HitState : BaseState
         {
             if (MushRoom.Target != null)
             {
-                MushRoom.ChangeState<ChaseState>();
+                float distance = MushRoom.transform.FlatDistanceTo(MushRoom.Target);
+
+                // [수정] 이전 ChaseState와 동일하게 여유분 0.01f 적용하여 정밀하게 판정
+                if (distance <= Agent.stoppingDistance + 0.01f) 
+                {
+                    MushRoom.ChangeState<AttackState>();
+                }
+                else
+                {
+                    MushRoom.ChangeState<ChaseState>();
+                }
             }
-            else
+            else 
             {
-                // 타겟이 없으면 대기
                 MushRoom.ChangeState<IdleState>();
             }
         }
     }
 
-
 }
+
+
+
+    

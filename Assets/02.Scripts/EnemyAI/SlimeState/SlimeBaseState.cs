@@ -11,7 +11,6 @@ public abstract class SlimeBaseState
         public Collider attackCollider;
     }
     
-    // 플레이어의 콜라이더를 감지할 배열을 미리 할당해놓는다.
     private readonly Collider[] targetBuffer = new Collider[1];
     
     protected Slime Slime { get; private set; }
@@ -38,39 +37,44 @@ public abstract class SlimeBaseState
 
     public bool IsPlayerInSight()
     {
-        int count = Physics.OverlapSphereNonAlloc(Slime.EyeTransform.position, Slime.DetectionRadius,
+        int detectionCount = Physics.OverlapSphereNonAlloc(Slime.EyeTransform.position, Slime.DetectionRadius,
             targetBuffer, Slime.PlayerLayer);
-        if (count == 0)
-        {
-            return false;
-        }
+        
+        if (detectionCount == 0) return false;
 
-        Transform potentialTarget = targetBuffer[0].transform;
+        Player targetPlayer = targetBuffer[0].GetComponentInParent<Player>();
+        Transform potentialTarget = (targetPlayer != null) ? targetPlayer.transform : targetBuffer[0].transform;
         
         Vector3 targetPosition = potentialTarget.position + Vector3.up * 1.0f;
-
         Vector3 directionToTarget = (targetPosition - Slime.EyeTransform.position).normalized;
-
         float angleToTarget = Vector3.Angle(Slime.EyeTransform.forward, directionToTarget);
 
-        if (angleToTarget > Slime.DetectionAngle / 2.0f)
-        {
-           // Debug.Log($"감지 실패 : 시야각에서 벗어남 {angleToTarget:F1}");
-            return false;
-        }
+        if (angleToTarget > Slime.DetectionAngle / 2.0f) return false;
 
         float distanceToTarget = Vector3.Distance(Slime.EyeTransform.position, targetPosition);
         
-        
-        if (Physics.Raycast(Slime.EyeTransform.position, directionToTarget, 
-                out RaycastHit hit, distanceToTarget, Slime.ObstacleLayer))
+        if (Physics.Raycast(Slime.EyeTransform.position, directionToTarget, distanceToTarget, Slime.ObstacleLayer))
         {
-            Debug.Log($"감지 실패: 장애물에 막힘 ({hit.collider.name})");
             return false;
         }
-        Debug.Log("감지 성공! 추격을 시작합니다");
+
         Slime.SetTarget(potentialTarget);
         return true;
     }
 
+    public bool IsMonsterInFront()
+    {
+        Vector3 originPosition = Slime.EyeTransform.position;
+        Vector3 checkDirection = Slime.transform.forward;
+        float checkDistance = 2.0f;
+
+        if (Physics.SphereCast(originPosition, 0.5f, checkDirection, out RaycastHit enemyHit, checkDistance, Slime.EnemyLayer))
+        {
+            if (enemyHit.collider.gameObject != Slime.gameObject)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 }

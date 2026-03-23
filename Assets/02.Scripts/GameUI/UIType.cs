@@ -2,11 +2,18 @@ public enum UIType
 {
     None,
     HUD,
-    QuickSlot, // 아이템 퀵슬롯
-    SkillQuickSlot, // 스킬 퀵슬롯 (신규)
+    QuickSlot, 
+    SkillQuickSlot, 
     Inventory,
     Trade,
-    Equip, // 장비창
+    Equip, 
     Skill,
+    Stat,         // [추가] 스탯창 전용 타입
     Menu,
+    WarningPopup, 
+    Quest,        
+    Dialogue,     
+    PlayerTrade,  
+    Loading,      
+    Title,
 }

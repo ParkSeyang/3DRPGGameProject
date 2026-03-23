@@ -2,10 +2,12 @@ using UnityEngine;
 using UnityEngine.AI;
 using System;
 using System.Collections.Generic;
+
 public class IdleState : BaseState
 {
-    private static readonly int Idle = Animator.StringToHash("Idle");
+    private static readonly int MoveSpeed = Animator.StringToHash("MoveSpeed");
     private const float WAIT_TIME = 5.0f;
+    private const float DAMP_TIME = 0.2f; // 멈출 때의 부드러움 정도
     private float timer = 0.0f;
     
     public override void Initialize(StateControllerParameter parameter)
@@ -16,20 +18,18 @@ public class IdleState : BaseState
     public override void EnterState()
     {
         timer = 0.0f;
-        MushRoomAnimator.SetTrigger(Idle);
+        // Enter에서 바로 0을 넣지 않고 Update에서 서서히 줄임
     }
 
     public override void UpdateState()
     {
-        // 플레이어는 대기중에도 시야 감지 범위를 통해서 언제든지 추격 상태로 전환
-        // 할 수 있어야 되고 만약 대기시간이 길어지면 정찰상태로 전환되게끔 해줘야됨 
-        
-        // 플레이어가 탐지 범위에 들어왔는지 확인하는 조건문이다
+        // 부드럽게 0(Idle)으로 감속
+        MushRoomAnimator.SetFloat(MoveSpeed, 0f, DAMP_TIME, Time.deltaTime);
+
         if (IsPlayerInSight())
         {
             MushRoom.ChangeState<ChaseState>();
-            return; // 발견했으면 굳이 밑의 로직을 실행할 이유가 없으므로 대기타이머를 무시하고 추적 상태로 전환
-            
+            return;
         }
         
         timer += Time.deltaTime;
@@ -37,11 +37,7 @@ public class IdleState : BaseState
         {
             MushRoom.ChangeState<PatrolState>();
         }
-        
     }
 
-    public override void ExitState()
-    {
-        
-    }
+    public override void ExitState() { }
 }

@@ -4,37 +4,44 @@ public class PlayerStatusController : SingletonBase<PlayerStatusController>, ICo
 {
     private Player player;
 
-    protected override void OnInitialize()
+    [Header("Effects")]
+    [SerializeField] private GameObject levelUpEffectPrefab;
+
+    // --- 전투 관련 상수 (Magic Number 제거) ---
+    private const float GuardAngleThreshold = 0.2f; // 전방 약 160도 범위 방어 (0.4 -> 0.2로 완화)
+    private const float GuardDamageReduction = 0.5f; // 가드 성공 시 데미지 50% 경감
+
+    private Player EnsurePlayer()
     {
-        // Player 싱글톤 참조
-        player = Player.Instance;
         if (player == null)
         {
-            Debug.LogError("[PlayerStatusController] Player 인스턴스를 찾을 수 없습니다.");
+            player = Player.Instance;
         }
-        
+        return player;
+    }
+
+    protected override void OnInitialize()
+    {
+        EnsurePlayer();
         InitializeCombat();
     }
 
     private void InitializeCombat()
     {
-        if (player == null) return;
+        var targetPlayer = EnsurePlayer();
+        if (targetPlayer == null) return;
 
-        // Player 오브젝트 하위의 모든 HitBox와 HurtBox를 찾아 초기화
-        // PlayerStatusController가 전투의 주체가 됨
-        var hitBoxes = player.GetComponentsInChildren<HitBox>(true);
-        foreach (var hb in hitBoxes)
+        var hitBoxes = targetPlayer.GetComponentsInChildren<HitBox>(true);
+        foreach (var hitBox in hitBoxes)
         {
-            hb.Initialize(this);
+            hitBox.Initialize(this);
         }
 
-        var hurtBoxes = player.GetComponentsInChildren<HurtBox>(true);
-        foreach (var hb in hurtBoxes)
+        var hurtBoxes = targetPlayer.GetComponentsInChildren<HurtBox>(true);
+        foreach (var hurtBox in hurtBoxes)
         {
-            hb.Initialize(this);
+            hurtBox.Initialize(this);
         }
-        
-        Debug.Log("[PlayerStatusController] 전투 컴포넌트 초기화 완료");
     }
 
     // --- ICombatAgent Implementation ---
@@ -45,40 +52,82 @@ public class PlayerStatusController : SingletonBase<PlayerStatusController>, ICo
 
         float finalDamage = damage;
 
-        // 가드 판정 확인 (Player 오브젝트에 있는 PlayerGuard 컴포넌트 참조)
+        // --- 가드 판정 로직 강화 ---
         var playerGuard = player.GetComponent<PlayerGuard>();
-        
-        if (playerGuard != null && hitInfo.hitTarget != null)
+        if (playerGuard != null && playerGuard.IsGuarding)
         {
-            // 맞은 콜라이더가 가드 콜라이더인지 확인
-            if (playerGuard.IsGuardSuccess(hitInfo.hitTarget.Collider))
+            bool isGuardSuccess = false;
+
+            // [수정] 단순히 버튼을 누른 상태가 아니라, 애니메이션 이벤트(Guard_On)로 인해 콜라이더가 켜졌을 때만 성공으로 간주
+            if (hitInfo.hitTarget != null && playerGuard.IsGuardCollider(hitInfo.hitTarget.Collider))
             {
-                finalDamage *= 0.5f; // 50% 데미지 감소
-                Debug.Log("<color=blue>[Player] 가드 성공! 데미지 50% 경감</color>");
+                // 방패 콜라이더에 직접 맞은 경우
+                isGuardSuccess = true;
+            }
+            else
+            {
+                // 가드 상태(IsGuarding)인데 몸에 맞았더라도, 전방 판정인지 체크
+                // ※ 여기서 Guard_On 이벤트가 발생하여 실제로 본체 콜라이더가 꺼졌는지 여부가 중요
+                Vector3 directionToHit = (hitInfo.position - player.transform.position).normalized;
+                directionToHit.y = 0; 
+                float dotProduct = Vector3.Dot(player.transform.forward, directionToHit);
+
+                // 전방에서 왔고, 현재 애니메이션상 가드 판정이 활성화된 상태여야 함
+                if (dotProduct > GuardAngleThreshold && hitInfo.hitTarget.Collider.enabled == false) 
+                {
+                    // 본체 콜라이더가 꺼져있다는 건 가드가 유효하게 작동 중이라는 증거
+                    isGuardSuccess = true;
+                }
+            }
+
+            if (isGuardSuccess)
+            {
+                finalDamage *= GuardDamageReduction;
                 
-                // 가드 성공 시 이펙트/애니메이션 등은 PlayerGuard 혹은 Animator에서 처리 권장
+                // [옵저버 패턴] 가드 이벤트 발생 (이때 가드 이펙트가 터짐)
+                CombatEvent guardEvent = new CombatEvent { Receiver = this, HitInfo = hitInfo };
+                CombatSystem.Instance.Subscribe.OnSomeoneGuard?.Invoke(guardEvent);
             }
         }
 
-        // 방어력 계산
-        float defense = player.DEF + player.BonusDEF;
-        finalDamage = Mathf.Max(1f, finalDamage - defense);
+        // --- 방어력 계산 및 최소 데미지(1) 보정 ---
+        float totalDefense = player.DEF + player.BonusDEF;
+        finalDamage = Mathf.Max(1f, finalDamage - totalDefense);
         
         // 체력 적용
         player.SetHP(player.HP - finalDamage);
-        
-        Debug.Log($"[PlayerStatusController] 피격! 데미지: {finalDamage}, 남은 HP: {player.HP}");
 
         if (player.HP <= 0)
         {
             // 사망 처리
             player.GetComponent<Animator>()?.SetTrigger("Dead");
             HandleDeathPenalty();
+
+            // 1.5초 후 게임 오버 UI 출력 (사망 애니메이션 시청 시간 확보)
+            Invoke(nameof(RequestGameOverUI), 1.5f);
         }
         else
         {
-            // 가드가 아닐 때만 피격 모션 재생 등
-            player.GetComponent<Animator>()?.SetTrigger("Hit");
+            // [수정] 상단에서 이미 선언된 playerGuard를 재사용하여 중복 선언 해결
+            bool isGuarding = playerGuard != null && playerGuard.IsGuarding;
+
+            if (isGuarding == false)
+            {
+                player.GetComponent<Animator>()?.SetTrigger("Hit");
+                player.GetComponent<PlayerSkillController>()?.CancelSkill(); // [추가] 피격 시 스킬 상태 해제
+                player.GetComponent<PlayerGuard>()?.CancelGuardAction(); // [추가] 피격 시 가드 동작 해제
+            }
+        }
+    }
+
+    /// <summary>
+    /// 플레이어 사망 애니메이션 이후 게임 오버 메뉴를 호출합니다.
+    /// </summary>
+    private void RequestGameOverUI()
+    {
+        if (UIManager.IsInitialized)
+        {
+            UIManager.Instance.ShowGameOver();
         }
     }
 
@@ -89,13 +138,10 @@ public class PlayerStatusController : SingletonBase<PlayerStatusController>, ICo
         CombatEvent combatEvent = new CombatEvent();
         combatEvent.Sender = this;
         combatEvent.Receiver = hitInfo.receiver;
-        // 데미지 계산
         combatEvent.Damage = player.ATK + player.BonusATK;
         combatEvent.HitInfo = hitInfo;
 
         CombatSystem.Instance.AddCombatEvent(combatEvent);
-        
-        Debug.Log($"[PlayerStatusController] 공격 적중! 대상: {hitInfo.receiver}, 데미지: {combatEvent.Damage}");
     }
 
     // 경험치 획득 및 레벨업 체크
@@ -104,28 +150,39 @@ public class PlayerStatusController : SingletonBase<PlayerStatusController>, ICo
         if (player == null) return;
 
         player.AddExp(amount);
+        
+        // [수정] 값 반영 후 SetExp를 호출하여 UI 이벤트를 강제로 발생시킴
+        player.SetExp(player.Exp);
+        
         CheckLevelUp();
     }
 
     private void CheckLevelUp()
     {
-        // 경험치가 최대치를 초과했을 경우 레벨업 처리 (다중 레벨업 지원)
         while (player.Exp >= player.MaxExp)
         {
-            player.SetExp(player.Exp - player.MaxExp); // 남은 경험치 이월
+            player.SetExp(player.Exp - player.MaxExp); 
             player.SetLevel(player.Level + 1);
 
-            // 레벨업 효과: HP/MP 완전 회복
+            player.AddMaxHP(10f);
+            player.AddMaxMP(10f);
+            player.AddBaseATK(5f);
+            player.AddBaseDEF(1f);
+
+            player.AddSP(4);
+
             player.SetHP(player.MaxHP);
             player.SetMP(player.MaxMP);
 
-            // 다음 레벨 필요 경험치 증가 (예: 1.2배 증가)
             int nextMaxExp = (int)(player.MaxExp * 1.2f);
             player.SetMaxExp(nextMaxExp);
 
-            Debug.Log($"[Level Up!] 레벨 {player.Level} 달성! (HP/MP 회복, 다음 필요 경험치: {nextMaxExp})");
-            
-            // TODO: 레벨업 UI 표시나 이펙트 재생 이벤트 호출 가능
+            if (levelUpEffectPrefab != null)
+            {
+                GameObject effect = Instantiate(levelUpEffectPrefab, player.transform.position, Quaternion.identity);
+                effect.transform.localScale = Vector3.one * 8.0f; 
+                Destroy(effect, 2.0f);
+            }
         }
     }
 
@@ -134,116 +191,115 @@ public class PlayerStatusController : SingletonBase<PlayerStatusController>, ICo
     {
         if (player == null) return;
         player.AddGold(amount);
-        Debug.Log($"[Gold] {amount}G 획득 (현재: {player.Gold}G)");
     }
 
-    // 사망 시 페널티 처리 (전투 시스템이나 다른 곳에서 호출)
+    // 사망 시 페널티 처리
     public void HandleDeathPenalty()
     {
-        if (player == null) return;
+        if (player == null || DataManager.Instance == null) return;
 
-        // 예시: 골드 20% 손실
-        int penalty = (int)(player.Gold * 0.2f);
-        player.AddGold(-penalty); // 음수 값을 더해서 차감
+        int goldPenalty = (int)(player.Gold * 0.2f);
+        player.AddGold(-goldPenalty); 
 
-        Debug.Log($"[Death] 사망 페널티: {penalty}G 소실");
+        UserSaveData saveContainer = DataManager.Instance.LoadUserData();
+        if (saveContainer != null && saveContainer.playerStat != null)
+        {
+            saveContainer.playerStat.Gold = player.Gold; 
+            DataManager.Instance.SaveUserData(saveContainer);
+        }
     }
 
     public UserSaveData GetSaveData()
     {
-        var data = new UserSaveData();
-        data.userName = player.Name;
-        data.playerStat = player.GetCurrentStatData();
-        data.SetPosition(player.transform.position);
+        var targetPlayer = EnsurePlayer();
+        if (targetPlayer == null) return null;
 
-        // 인벤토리 데이터 저장
-        if (InventorySystem.Instance != null)
+        var saveData = new UserSaveData();
+        saveData.userName = targetPlayer.Name;
+        saveData.playerStat = targetPlayer.GetCurrentStatData();
+        saveData.SetPosition(targetPlayer.transform.position);
+        saveData.rotY = targetPlayer.transform.eulerAngles.y; 
+        saveData.lastSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name; 
+
+        if (InventoryDataManager.Instance != null)
         {
-            var userInven = InventorySystem.Instance.GetInventoryOrNull("User");
-            if (userInven != null) data.userInventoryData = userInven.GetSaveData();
-
-            var equipInven = InventorySystem.Instance.GetInventoryOrNull("Equip");
-            if (equipInven != null) data.equipInventoryData = equipInven.GetSaveData();
-            
-            var quickInven = InventorySystem.Instance.GetInventoryOrNull("Quick");
-            if (quickInven != null) data.quickSlotData = quickInven.GetSaveData();
+            saveData.userInventoryData = InventoryDataManager.Instance.GetInventoryData("User");
+            saveData.equipInventoryData = InventoryDataManager.Instance.GetInventoryData("Equip");
+            saveData.quickSlotData = InventoryDataManager.Instance.GetInventoryData("Quick");
         }
 
-        // 스킬 데이터 저장
         if (SkillDataManager.Instance != null)
         {
-            data.skillData = SkillDataManager.Instance.GetSaveData();
-        }
-        
-        // 장착된 스킬 슬롯 저장
-        var skillSystem = player.GetComponent<PlayerSkillSystem>();
-        if (skillSystem != null)
-        {
-            data.skillSlotQ = skillSystem.SkillSlot_Q;
-            data.skillSlotE = skillSystem.SkillSlot_E;
+            saveData.skillData = SkillDataManager.Instance.GetSaveData();
         }
 
-        return data;
+        if (QuestManager.IsInitialized)
+        {
+            saveData.questSaveData = QuestManager.Instance.GetSaveData();
+        }
+        
+        var skillSystem = targetPlayer.GetComponent<PlayerSkillSystem>();
+        if (skillSystem != null)
+        {
+            saveData.skillSlotQ = skillSystem.SkillSlot_Q;
+            saveData.skillSlotE = skillSystem.SkillSlot_E;
+        }
+
+        return saveData;
     }
 
-    public void ApplySaveData(UserSaveData data)
+    public void ApplySaveData(UserSaveData saveData)
     {
-        if (player == null || data == null) return;
+        if (player == null || saveData == null) return;
 
-        // 1. 저장된 현재 체력/마나 값을 임시 보관
-        float savedHP = data.playerStat.HP;
-        float savedMP = data.playerStat.MP;
+        InitializeCombat();
 
-        // 2. 위치 적용
-        player.transform.position = data.GetPosition();
+        float restoredHP = saveData.playerStat.HP;
+        float restoredMP = saveData.playerStat.MP;
 
-        // 3. 스탯 적용
-        player.ApplyStatData(data.playerStat);
+        player.transform.position = saveData.GetPosition();
+        player.transform.rotation = Quaternion.Euler(0, saveData.rotY, 0);
+        
+        player.ApplyStatData(saveData.playerStat);
 
-        // 4. 스킬 데이터 복원 및 패시브 적용
-        if (SkillDataManager.Instance != null && data.skillData != null)
+        if (SkillDataManager.Instance != null && saveData.skillData != null)
         {
-            SkillDataManager.Instance.LoadFromSaveData(data.skillData);
-            UpdatePassiveStats(); // 패시브 스탯 적용
+            SkillDataManager.Instance.LoadFromSaveData(saveData.skillData);
+            UpdatePassiveStats();
         }
         
-        // 장착된 스킬 슬롯 복원
         var skillSystem = player.GetComponent<PlayerSkillSystem>();
         if (skillSystem != null)
         {
-            skillSystem.SkillSlot_Q = data.skillSlotQ;
-            skillSystem.SkillSlot_E = data.skillSlotE;
+            skillSystem.SkillSlot_Q = saveData.skillSlotQ;
+            skillSystem.SkillSlot_E = saveData.skillSlotE;
         }
 
-        // 5. 인벤토리 데이터 복원 (장비 장착으로 Max 증가)
-        if (InventorySystem.Instance != null)
+        if (InventoryDataManager.Instance != null)
         {
-            var userInven = InventorySystem.Instance.GetInventoryOrNull("User");
-            if (userInven != null && data.userInventoryData != null) 
-                userInven.LoadFromSaveData(data.userInventoryData);
-
-            var equipInven = InventorySystem.Instance.GetInventoryOrNull("Equip");
-            
-            // 장비창 로드 시 중복 적용 방지를 위해 보너스 스탯 초기화가 필요하다면 여기서 수행
             player.AddBonusATK(-player.BonusATK); 
             player.AddBonusDEF(-player.BonusDEF);
-            
-            if (equipInven != null && data.equipInventoryData != null) 
-                equipInven.LoadFromSaveData(data.equipInventoryData);
-                
-            var quickInven = InventorySystem.Instance.GetInventoryOrNull("Quick");
-            if (quickInven != null && data.quickSlotData != null) 
-                quickInven.LoadFromSaveData(data.quickSlotData);
+
+            InventoryDataManager.Instance.SetInventoryData("User", saveData.userInventoryData);
+            InventoryDataManager.Instance.SetInventoryData("Equip", saveData.equipInventoryData);
+            InventoryDataManager.Instance.SetInventoryData("Quick", saveData.quickSlotData);
+        }
+
+        if (QuestManager.IsInitialized && saveData.questSaveData != null)
+        {
+            QuestManager.Instance.LoadSaveData(saveData.questSaveData);
         }
         
-        // 5. 최종 보정: 장비 장착으로 Max값이 확정된 후, 저장해뒀던 현재 HP/MP를 다시 적용
-        player.SetHP(savedHP);
-        player.SetMP(savedMP);
-
-        // 6. 모든 데이터 로드 후 스탯 UI 강제 동기화
+        player.SetHP(restoredHP);
+        player.SetMP(restoredMP);
         player.RefreshAllStats();
 
-        Debug.Log("[PlayerStatusController] 세이브 데이터가 월드에 적용되었습니다.");
+        var animator = player.GetComponent<Animator>();
+        if (animator != null)
+        {
+            animator.Rebind();
+            animator.Update(0f);
+        }
     }
 
     /// <summary>
@@ -272,16 +328,13 @@ public class PlayerStatusController : SingletonBase<PlayerStatusController>, ICo
         {
             case "Weapon":
                 player.AddBonusATK(item.Value);
-                Debug.Log($"[Equip] {item.ItemName} 장착: BonusATK +{item.Value}");
                 break;
             case "Armor":
                 player.AddBonusDEF(item.Value);
-                Debug.Log($"[Equip] {item.ItemName} 장착: BonusDEF +{item.Value}");
                 break;
             case "Artifact":
                 player.AddMaxHP(25f);
                 player.AddMaxMP(25f);
-                Debug.Log($"[Equip] {item.ItemName} 장착: MaxHP/MP +25");
                 break;
         }
     }
@@ -294,33 +347,40 @@ public class PlayerStatusController : SingletonBase<PlayerStatusController>, ICo
         {
             case "Weapon":
                 player.AddBonusATK(-item.Value); // 차감
-                Debug.Log($"[Unequip] {item.ItemName} 해제: BonusATK -{item.Value}");
                 break;
             case "Armor":
                 player.AddBonusDEF(-item.Value);
-                Debug.Log($"[Unequip] {item.ItemName} 해제: BonusDEF -{item.Value}");
                 break;
             case "Artifact":
                 player.AddMaxHP(-25f);
                 player.AddMaxMP(-25f);
-                Debug.Log($"[Unequip] {item.ItemName} 해제: MaxHP/MP -25");
                 break;
         }
     }
 
     private bool HandlePotion(Item item)
     {
+        if (item == null) return false;
+        
         // ID별 상세 로직 (소/중 구분은 item.Value에 이미 반영되어 있음)
         if (item.ItemID == "I001" || item.ItemID == "I003") // 체력 포션
         {
             player.SetHP(player.HP + item.Value);
-            Debug.Log($"[Potion] {item.ItemName} 사용: {item.Value} HP 회복 (현재: {player.HP}/{player.MaxHP})");
+            
+            // [옵저버 패턴] 힐 이벤트 발생 (parameter 0: HP)
+            CombatEvent healEvent = new CombatEvent { Receiver = this, HitInfo = new HitInfo { parameter = 0 } };
+            CombatSystem.Instance.InvokeHealEvent(healEvent);
+            
             return true;
         }
         else if (item.ItemID == "I002" || item.ItemID == "I004") // 마나 포션
         {
             player.SetMP(player.MP + item.Value);
-            Debug.Log($"[Potion] {item.ItemName} 사용: {item.Value} MP 회복 (현재: {player.MP}/{player.MaxMP})");
+
+            // [옵저버 패턴] 힐 이벤트 발생 (parameter 1: MP)
+            CombatEvent healEvent = new CombatEvent { Receiver = this, HitInfo = new HitInfo { parameter = 1 } };
+            CombatSystem.Instance.InvokeHealEvent(healEvent);
+
             return true;
         }
 
@@ -328,21 +388,20 @@ public class PlayerStatusController : SingletonBase<PlayerStatusController>, ICo
     }
 
     // --- 패시브 스킬 시스템 연동 ---
-    
-    private float _currentPassiveHp;
-    private float _currentPassiveMp;
-    private float _currentPassiveAtk;
-    private float _currentPassiveDef;
+    private float currentPassiveHp;
+    private float currentPassiveMp;
+    private float currentPassiveAtk;
+    private float currentPassiveDef;
 
     public void UpdatePassiveStats()
     {
         if (SkillDataManager.Instance == null || player == null) return;
 
         // 1. 기존 패시브 효과 제거 (이전 계산값 차감)
-        player.AddMaxHP(-_currentPassiveHp);
-        player.AddMaxMP(-_currentPassiveMp);
-        player.AddBonusATK(-_currentPassiveAtk);
-        player.AddBonusDEF(-_currentPassiveDef);
+        player.AddMaxHP(-currentPassiveHp);
+        player.AddMaxMP(-currentPassiveMp);
+        player.AddBonusATK(-currentPassiveAtk);
+        player.AddBonusDEF(-currentPassiveDef);
 
         // 2. 새 패시브 효과 계산
         float newHp = 0, newMp = 0, newAtk = 0, newDef = 0;
@@ -354,7 +413,6 @@ public class PlayerStatusController : SingletonBase<PlayerStatusController>, ICo
             // 스킬 ID에 따른 효과 분기
             // ID 1: StrongBody (HP/MP)
             // ID 3: GreatSwordTraining (ATK)
-            
             float effectValue = skill.GetCurrentValue();
 
             switch (skill.SkillID)
@@ -376,12 +434,12 @@ public class PlayerStatusController : SingletonBase<PlayerStatusController>, ICo
         player.AddBonusDEF(newDef);
 
         // 4. 누적치 갱신
-        _currentPassiveHp = newHp;
-        _currentPassiveMp = newMp;
-        _currentPassiveAtk = newAtk;
-        _currentPassiveDef = newDef;
-        
+        currentPassiveHp = newHp;
+        currentPassiveMp = newMp;
+        currentPassiveAtk = newAtk;
+        currentPassiveDef = newDef;
+                
         player.RefreshAllStats();
-        // Debug.Log($"[Passive] 패시브 스탯 갱신: HP+{newHp}, MP+{newMp}, ATK+{newAtk}");
     }
 }
+        

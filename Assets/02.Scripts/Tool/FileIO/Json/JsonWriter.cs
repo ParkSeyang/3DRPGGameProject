@@ -20,14 +20,20 @@ public static class JsonWriter
             }
                 
             var formatting = prettyPrint ? Formatting.Indented : Formatting.None;
+                
             string json = JsonConvert.SerializeObject(data, formatting);
+                
             File.WriteAllText(fullPath, json);
-
-            Debug.Log($"[JsonWriter] 저장 완료: {fullPath}");
+                
         }
-        catch (System.Exception ex)
+                
+        catch (System.Exception)
         {
-            Debug.LogError($"[JsonWriter] 저장 실패: {fullPath}\n{ex}");
+                
         }
+                
     }
+                
 }
+                
+            

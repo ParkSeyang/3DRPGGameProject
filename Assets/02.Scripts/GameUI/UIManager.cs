@@ -1,183 +1,373 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.EventSystems;
 
 public class UIManager : SingletonBase<UIManager>
 {
-    private Dictionary<UIType, BaseUI> uiDic = new Dictionary<UIType, BaseUI>();
+    private Dictionary<UIType, BaseUI> uiDictionary = new Dictionary<UIType, BaseUI>();
 
     public bool IsPopupOpen { get; private set; }
+    private bool isUIManagementEnabled = true;
 
-    public void RegisterUI(BaseUI ui)
+    public MerchantNPC CurrentMerchant { get; set; }
+
+    public void RegisterUI(BaseUI baseUI)
     {
-        if (uiDic.ContainsKey(ui.UIType) == false)
+        if (baseUI == null) return;
+
+        // [보강] 이미 DontDestroyOnLoad에 안착한 UI가 있다면 신규 등록 거부
+        if (uiDictionary.TryGetValue(baseUI.UIType, out var existingUI))
         {
-            uiDic.Add(ui.UIType, ui);
-            Debug.Log($"[UIManager] {ui.UIType} 등록됨");
+            if (existingUI != null && existingUI.gameObject.scene.name == "DontDestroyOnLoad")
+            {
+                return;
+            }
         }
+
+        uiDictionary[baseUI.UIType] = baseUI;
+    }
+
+    private void OnEnable() => SceneManager.sceneLoaded += OnSceneLoaded;
+    private void OnDisable() => SceneManager.sceneLoaded -= OnSceneLoaded;
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // 씬 로드 시마다 초기화 로직 실행
+        OnInitialize();
     }
 
     protected override void OnInitialize()
     {
-        // 씬 내의 모든 BaseUI(비활성 포함) 검색 및 등록
-        BaseUI[] allUIs = FindObjectsOfType<BaseUI>(true);
-        foreach (var ui in allUIs)
+        string sceneName = SceneManager.GetActiveScene().name;
+        bool isTitleScene = sceneName.Contains("Start") || sceneName.Contains("Title");
+        bool isCurrentlyLoading = (GameSceneManager.Instance != null && GameSceneManager.Instance.IsLevelLoading);
+
+        // [표준 준수] ! 연산자 대신 false 비교 사용
+        isUIManagementEnabled = (isTitleScene == false && isCurrentlyLoading == false);
+
+        // [핵심 1] EventSystem 중복 방지 및 단일 활성화
+        var allEventSystems = Object.FindObjectsByType<EventSystem>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        EventSystem primaryES = null;
+
+        foreach (var eventSystem in allEventSystems)
         {
-            RegisterUI(ui);
+            if (eventSystem.gameObject.scene.name == "DontDestroyOnLoad")
+            {
+                if (primaryES == null) primaryES = eventSystem;
+                else DestroyImmediate(eventSystem.gameObject); 
+            }
         }
 
-        // 초기 상태: HUD와 QuickSlot만 켜고 나머지는 끈다
-        foreach (var pair in uiDic)
+        foreach (var eventSystem in allEventSystems)
         {
-            if (pair.Key == UIType.HUD || pair.Key == UIType.QuickSlot)
+            if (eventSystem == null || eventSystem.gameObject.scene.name == "DontDestroyOnLoad") continue;
+
+            if (primaryES == null)
             {
-                pair.Value.Open();
+                primaryES = eventSystem;
+                DontDestroyOnLoad(eventSystem.gameObject);
             }
             else
             {
-                pair.Value.Close();
+                DestroyImmediate(eventSystem.gameObject);
+            }
+        }
+
+        if (primaryES != null)
+        {
+            primaryES.gameObject.SetActive(true);
+            primaryES.enabled = true;
+        }
+
+        // [핵심 2] UI 원자적 정리 (Canvas 단위)
+        BaseUI[] allUIs = Object.FindObjectsByType<BaseUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        uiDictionary.Clear();
+
+        // 단계 1: 이미 DDOL에 있는 UI들을 장부에 먼저 등록
+        foreach (var uiBase in allUIs)
+        {
+            if (uiBase == null) continue;
+            Transform rootTransform = uiBase.transform;
+            while (rootTransform.parent != null) rootTransform = rootTransform.parent;
+
+            if (rootTransform.gameObject.scene.name == "DontDestroyOnLoad")
+            {
+                uiDictionary[uiBase.UIType] = uiBase;
+            }
+        }
+
+        // 단계 2: 새로 로드된 루트(Canvas)들을 검사하여 파괴하거나 DDOL로 이동
+        var newRoots = allUIs
+            .Where(uiBase => uiBase != null && uiBase.gameObject.scene.name != "DontDestroyOnLoad")
+            .Select(uiBase => {
+                Transform currentTransform = uiBase.transform;
+                while (currentTransform.parent != null) currentTransform = currentTransform.parent;
+                return currentTransform.gameObject;
+            })
+            .Distinct()
+            .ToList();
+
+        foreach (var rootGameObject in newRoots)
+        {
+            var componentsInRoot = rootGameObject.GetComponentsInChildren<BaseUI>(true);
+            // 해당 루트 안에 하나라도 이미 관리 중인 UI 타입이 있다면 중복 세트로 간주
+            bool isDuplicate = componentsInRoot.Any(uiComponent => uiDictionary.ContainsKey(uiComponent.UIType));
+
+            if (isDuplicate == true)
+            {
+                DestroyImmediate(rootGameObject);
+            }
+            else
+            {
+                DontDestroyOnLoad(rootGameObject);
+                foreach (var uiComponent in componentsInRoot)
+                {
+                    uiDictionary[uiComponent.UIType] = uiComponent;
+                }
+            }
+        }
+
+        // [단계 3] UI 초기 상태 설정
+        var uiInstanceList = uiDictionary.Values.ToList();
+        foreach (var uiInstance in uiInstanceList)
+        {
+            if (uiInstance == null) continue;
+
+            if (uiInstance.UIType == UIType.Title)
+            {
+                if (isTitleScene == true) uiInstance.Open();
+                else uiInstance.Close();
+            }
+            else if (uiInstance.UIType == UIType.Loading)
+            {
+                if (isCurrentlyLoading == true) uiInstance.Open();
+                else uiInstance.Close();
+            }
+            else
+            {
+                if (isTitleScene == true) uiInstance.Close();
+                else
+                {
+                    if (uiInstance.IsPopup == false) uiInstance.Open();
+                    else uiInstance.Close();
+                }
             }
         }
         
-        RefreshUIState();
-    }
-
-    private void Start()
-    {
-        if (uiDic.Count == 0)
+        // 커서 및 조작 최종 확정
+        if (isTitleScene == true)
         {
-            OnInitialize();
+            Time.timeScale = 1f;
+            SetControlState(false); 
+        }
+        else if (isCurrentlyLoading == false)
+        {
+            UpdateHUDVisibility();
+            RefreshUIState();
         }
     }
 
     private void Update()
     {
+        if (isUIManagementEnabled == false) return;
+
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            if (IsPopupOpen) CloseAllPopup();
+            if (IsPopupOpen == true) CloseAllPopup();
             else ToggleUI(UIType.Menu);
         }
-
+        
         if (Input.GetKeyDown(KeyCode.K)) ToggleUI(UIType.Skill);
         if (Input.GetKeyDown(KeyCode.I)) ToggleUI(UIType.Inventory);
+        
+        UpdateGlobalState();
     }
 
-    public void ToggleUI(UIType uiType)
+    private void UpdateGlobalState()
     {
-        if (uiDic.TryGetValue(uiType, out BaseUI targetUI) == false)
-        {
-            Debug.LogWarning($"[UIManager] {uiType} UI를 찾을 수 없습니다. 등록 여부를 확인하세요.");
-            return;
-        }
+        if (isUIManagementEnabled == false) return;
 
-        // 현재 켜져 있으면 끄고, 꺼져 있으면 연다
-        if (targetUI.gameObject.activeSelf)
+        var uiInstanceList = uiDictionary.Values.ToList();
+        bool anyActualPopupActive = uiInstanceList.Any(uiInstance => uiInstance != null && uiInstance.IsPopup && uiInstance.gameObject.activeSelf);
+
+        IsPopupOpen = anyActualPopupActive;
+
+        UpdateHUDVisibility();
+
+        if (IsPopupOpen == true)
         {
-            targetUI.Close();
-            // 인벤토리를 닫을 때 장비창도 같이 닫음
-            if (uiType == UIType.Inventory) SetUIActive(UIType.Equip, false);
+            Time.timeScale = 0f;
+            SetControlState(false); 
         }
         else
         {
-            // 인벤토리나 스킬창을 열 때 기존의 다른 팝업들은 닫는다 (선택 사항)
-            CloseAllPopup(); 
-            
-            targetUI.Open();
-            // 인벤토리를 열 때 장비창도 같이 엶
-            if (uiType == UIType.Inventory) SetUIActive(UIType.Equip, true);
+            Time.timeScale = 1f;
+            SetControlState(true); 
         }
+    }
 
+    public void RefreshUIState() => UpdateGlobalState();
+
+    private void UpdateHUDVisibility()
+    {
+        bool isInventoryOpen = IsUIActive(UIType.Inventory);
+        bool isTradeOpen = IsUIActive(UIType.Trade);
+        bool isMenuOpen = IsUIActive(UIType.Menu);
+        bool isSkillOpen = IsUIActive(UIType.Skill);
+        bool isLoading = GameSceneManager.Instance != null && GameSceneManager.Instance.IsLevelLoading;
+
+        // [규칙 1] SkillQuickSlot: 인벤토리, 상인, 메뉴, 로딩 중 비활성화 (그 외 활성)
+        bool shouldShowSkillHUD = (isInventoryOpen == false && isTradeOpen == false && isMenuOpen == false && isLoading == false);
+        SetHUDActiveState(UIType.SkillQuickSlot, shouldShowSkillHUD);
+
+        // [규칙 2] QuickSlotInventory: 스킬트리, 메뉴, 로딩 중 비활성화 (그 외 활성)
+        // [수정] 인벤토리나 상점이 열려있을 때도 퀵슬롯은 유지되어야 함
+        bool shouldShowQuickSlot = (isSkillOpen == false && isMenuOpen == false && isLoading == false);
+        SetHUDActiveState(UIType.QuickSlot, shouldShowQuickSlot);
+    }
+
+    private void SetHUDActiveState(UIType type, bool isActive)
+    {
+        if (uiDictionary.TryGetValue(type, out var targetUI) == true)
+        {
+            if (targetUI.gameObject.activeSelf != isActive)
+            {
+                if (isActive == true) targetUI.Open();
+                else targetUI.Close();
+            }
+        }
+    }
+
+    public bool IsUIActive(UIType type) => uiDictionary.TryGetValue(type, out var ui) && ui.gameObject.activeSelf;
+
+    public void ToggleUI(UIType uiType)
+    {
+        if (uiDictionary.TryGetValue(uiType, out BaseUI targetUI) == false) return;
+
+        if (targetUI.gameObject.activeSelf == true) SetUIActive(uiType, false);
+        else
+        {
+            CloseAllPopup(); 
+            SetUIActive(uiType, true);
+            
+            if (uiType == UIType.Inventory)
+            {
+                SetUIActive(UIType.Equip, true);
+                SetUIActive(UIType.Stat, true);
+            }
+            if (uiType == UIType.Trade) SetUIActive(UIType.PlayerTrade, true);
+        }
         RefreshUIState();
     }
 
     public void CloseAllPopup()
     {
-        // 리스트를 복사해서 순회 (Dictionary 수정 중 오류 방지)
-        foreach (var ui in uiDic.Values)
-        {
-            if (ui.UIType == UIType.HUD || ui.UIType == UIType.QuickSlot)
-            {
-                continue; // HUD와 퀵슬롯은 팝업이 아님
-            }
-            ui.Close();
-        }
+        var activePopups = uiDictionary.Values.ToList()
+            .Where(uiInstance => uiInstance != null && uiInstance.IsPopup && uiInstance.gameObject.activeSelf)
+            .ToList();
 
+        foreach (var popupUI in activePopups) SetUIActive(popupUI.UIType, false);
         RefreshUIState();
     }
 
-    private void RefreshUIState()
+    public void SetUIActive(UIType type, bool isActive)
     {
-        bool isInventoryOpen = IsUIOpen(UIType.Inventory);
-        bool isEquipOpen = IsUIOpen(UIType.Equip);
-        bool isTradeOpen = IsUIOpen(UIType.Trade);
-        bool isSkillOpen = IsUIOpen(UIType.Skill);
-        bool isMenuOpen = IsUIOpen(UIType.Menu);
-
-        // 팝업 중 하나라도 열려있는지 체크
-        IsPopupOpen = isInventoryOpen || isEquipOpen || isTradeOpen || isSkillOpen || isMenuOpen;
-
-        // 1. HUD: 팝업이 하나라도 열리면 끈다
-        SetUIActive(UIType.HUD, IsPopupOpen == false);
-
-        // 2. QuickSlot (아이템): 인벤토리나 상점이 열렸을 때만 HUD와 상관없이 보여준다
-        // 메뉴나 스킬창에서는 꺼지도록 설정
-        bool showQuickSlot = (IsPopupOpen == false) || isInventoryOpen || isTradeOpen || isEquipOpen;
-        if (isMenuOpen || isSkillOpen) 
+        if (uiDictionary.TryGetValue(type, out var targetUI))
         {
-            showQuickSlot = false;
+            if (isActive == true) targetUI.Open();
+            else if (targetUI.gameObject.activeSelf == true)
+            {
+                targetUI.Close();
+                
+                if (type == UIType.Trade)
+                {
+                    SetUIActive(UIType.PlayerTrade, false);
+                    if (CurrentMerchant != null) { CurrentMerchant.OnShopClosed(); CurrentMerchant = null; }
+                }
+                
+                if (type == UIType.Inventory)
+                {
+                    SetUIActive(UIType.Equip, false);
+                    SetUIActive(UIType.Stat, false);
+                }
+            }
         }
-        SetUIActive(UIType.QuickSlot, showQuickSlot);
+    }
+
+    public void SetAllInGameUIActive(bool isActive)
+    {
+        isUIManagementEnabled = isActive;
         
-        // 3. SkillQuickSlot (스킬): 평상시와 스킬창 열렸을 때만 보임
-        // 인벤토리, 상점, 메뉴 등 다른 창이 열리면 숨김
-        bool showSkillQuickSlot = true;
-        if (isInventoryOpen || isTradeOpen || isEquipOpen || isMenuOpen)
-        {
-            showSkillQuickSlot = false;
-        }
-        else if (isSkillOpen)
-        {
-            showSkillQuickSlot = true;
-        }
-        SetUIActive(UIType.SkillQuickSlot, showSkillQuickSlot);
+        string sceneName = SceneManager.GetActiveScene().name;
+        bool isTitleScene = sceneName.Contains("Start") || sceneName.Contains("Title");
+        bool isCurrentlyLoading = (GameSceneManager.Instance != null && GameSceneManager.Instance.IsLevelLoading);
 
-        // 4. 시간 및 커서 제어
-        if (IsPopupOpen)
+        var uiInstanceList = uiDictionary.Values.ToList();
+
+        foreach (var uiInstance in uiInstanceList)
         {
-            Time.timeScale = 0f;
-            SetControlState(false); // 커서 보임
+            if (uiInstance == null) continue;
+
+            if (isActive == true) 
+            { 
+                if (uiInstance.UIType == UIType.Title) uiInstance.Close();
+                else if (uiInstance.IsPopup == false) uiInstance.Open(); 
+            }
+            else
+            {
+                bool isLoadingUI = (uiInstance.UIType == UIType.Loading && isCurrentlyLoading == true);
+                bool shouldShowTitle = (isTitleScene == true && uiInstance.UIType == UIType.Title);
+
+                if (shouldShowTitle == true || isLoadingUI == true) uiInstance.Open();
+                else uiInstance.Close();
+            }
         }
-        else
+        
+        if (isActive == true) 
         {
+            UpdateHUDVisibility();
+            RefreshUIState();
+        }
+        else 
+        { 
             Time.timeScale = 1f;
-            SetControlState(true); // 커서 숨김
+            SetControlState(isTitleScene == false); 
         }
     }
 
-    private bool IsUIOpen(UIType type)
+    public void ForceRefreshAll()
     {
-        return uiDic.ContainsKey(type) && uiDic[type].gameObject.activeSelf;
-    }
-
-    private void SetUIActive(UIType type, bool isActive)
-    {
-        if (uiDic.TryGetValue(type, out var ui))
+        var uiInstanceList = uiDictionary.Values.ToList();
+        foreach (var uiInstance in uiInstanceList)
         {
-            if (isActive && ui.gameObject.activeSelf == false) ui.Open();
-            else if (isActive == false && ui.gameObject.activeSelf) ui.Close();
+            if (uiInstance != null) uiInstance.Refresh();
         }
     }
 
     private void SetControlState(bool canControl)
     {
-        if (canControl)
+        Cursor.visible = (canControl == false);
+        Cursor.lockState = canControl ? CursorLockMode.Locked : CursorLockMode.None;
+    }
+
+    public void ShowWarning(string message) 
+    { 
+        if (uiDictionary.TryGetValue(UIType.WarningPopup, out var uiBase) && uiBase is WarningPopupUI warningUI) 
         {
-            Cursor.visible = false;
-            Cursor.lockState = CursorLockMode.Locked;
-        }
-        else
-        {
-            Cursor.visible = true;
-            Cursor.lockState = CursorLockMode.None;
+            warningUI.Show(message); 
         }
     }
+
+    public void ShowGameOver() 
+    { 
+        if (uiDictionary.TryGetValue(UIType.Menu, out var uiBase) && uiBase is GameMenuUI menuUI) 
+        {
+            menuUI.SetGameOverMode(); 
+        }
+    }
+
+    public DialogUI GetDialogueUI() => uiDictionary.TryGetValue(UIType.Dialogue, out var uiBase) ? uiBase as DialogUI : null;
+    public LoadingUI GetLoadingUI() => uiDictionary.Values.OfType<LoadingUI>().FirstOrDefault();
 }

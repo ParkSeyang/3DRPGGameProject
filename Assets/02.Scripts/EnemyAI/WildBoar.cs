@@ -7,17 +7,48 @@ using UnityEditor;
 #endif
 
 
-public class WildBoar : MonoBehaviour, ICombatAgent
+public class WildBoar : MonoBehaviour, ICombatAgent, IPoolAbleObject
 {
     private static readonly int Idle = Animator.StringToHash("Idle");
     private static readonly int Walk = Animator.StringToHash("Walk");
-    
     private static readonly int Attack = Animator.StringToHash("Attack");
     private static readonly int Hit = Animator.StringToHash("Hit");
     private static readonly int Dead = Animator.StringToHash("Dead");
     
     [Header("Data Settings")]
-    [SerializeField] private int enemyID = 3; // 기본값
+    [SerializeField] private int enemyID = 3; 
+    
+    // IPoolAbleObject 인터페이스 구현
+    public int EnemyID => enemyID;
+
+    public void OnGet()
+    {
+        isDead = false;
+        InitializeStat();
+        
+        if (Agent != null) Agent.enabled = false;
+        var mainCollider = GetComponent<Collider>();
+        if (mainCollider != null) mainCollider.isTrigger = false;
+
+        // [추가] 공격 판정 및 애니메이터 초기화
+        if (AttackCollider != null) AttackCollider.enabled = false;
+        if (Animator != null)
+        {
+            Animator.Rebind();
+            Animator.Update(0f);
+        }
+
+        if (statUI != null)
+        {
+            statUI.Initialize(EnemyName, Level, CurrentHP, MaxHP);
+        }
+
+        ChangeState<WildBoarIdleState>();
+    }
+
+    public void OnRelease() { }
+    public string EnemyName { get; private set; } // [추가] 이름
+    public int Level { get; private set; }       // [추가] 레벨
     
     public float MoveSpeed { get; set; } = 10.0f;
     public int Exp { get; private set; }
@@ -26,6 +57,7 @@ public class WildBoar : MonoBehaviour, ICombatAgent
     public float MaxHP { get; private set; }
     public float CurrentHP { get; private set; }
     public float ATK { get; private set; }
+    public float DEF { get; private set; } // [추가] 방어력
     
     private bool isDead = false;
     public event Action OnDead;
@@ -44,23 +76,17 @@ public class WildBoar : MonoBehaviour, ICombatAgent
     [SerializeField] private Transform eyeTransform;
     [SerializeField] private float detectionRadius = 10.0f;
     [SerializeField, Range(0, 360)] 
-    // 부채꼴 시야각을 위한 범위 지정
     private float detectionAngle = 90.0f;
-    [SerializeField] private LayerMask playerLayer; // 플레이어 탐지를 위한 레이어
-    [SerializeField] private LayerMask obstacleLayer; // 장애물 탐지를 위한 레이어
+    [SerializeField] private LayerMask playerLayer; 
+    [SerializeField] private LayerMask obstacleLayer; 
+    [SerializeField] private LayerMask enemyLayer; 
     
     
     [Header("애니메이션 및 Collider")]
     [SerializeField] private Collider AttackCollider;
     [SerializeField] private AnimEventReceiver AnimEventReceiver;
+    [SerializeField] private MonsterStatUI statUI;
 
-
-    [Header("테스트용 사망 로직")] 
-    [SerializeField] private int maxHitCount = 3;
-
-    public int CurrentHitCount { get; private set; } = 0;
-
-    // 개발 초기 테스트를 위해서 공개프로퍼티로 생성
     public Transform Target => target;
     public Transform EyeTransform => eyeTransform;
     public float PatrolRadius => patrolRadius;
@@ -68,13 +94,16 @@ public class WildBoar : MonoBehaviour, ICombatAgent
     public float DetectionAngle => detectionAngle;
     public LayerMask PlayerLayer => playerLayer;
     public LayerMask ObstacleLayer => obstacleLayer;
-    
-    
+    public LayerMask EnemyLayer => enemyLayer;
+
     private Animator Animator { get; set; }
     private NavMeshAgent Agent { get; set; }
     private Dictionary<Type, WildBoarBaseState> States { get; set; }
     public WildBoarBaseState CurrentState { get; set; }
     private WildBoarBaseState DefaultState { get; set; }
+
+    public MonsterSpawnPoint SpawnPoint { get; private set; }
+    public void SetSpawnPoint(MonsterSpawnPoint point) => SpawnPoint = point;
 
     public void SetTarget(Transform newTarget)
     {
@@ -85,10 +114,17 @@ public class WildBoar : MonoBehaviour, ICombatAgent
     {
         Animator = GetComponent<Animator>();
         Agent = GetComponent<NavMeshAgent>();
+
         AttackCollider.enabled = false;
 
         InitializeStat();
         InitializeCombat();
+
+        // [수정] 초기 스탯 UI 데이터 주입
+        if (statUI != null)
+        {
+            statUI.Initialize(EnemyName, Level, CurrentHP, MaxHP);
+        }
 
         States = new Dictionary<Type, WildBoarBaseState>();
         States.Add(typeof(WildBoarIdleState), new WildBoarIdleState());
@@ -97,43 +133,40 @@ public class WildBoar : MonoBehaviour, ICombatAgent
         States.Add(typeof(WildBoarAttackState), new WildBoarAttackState());
         States.Add(typeof(WildBoarHitState), new WildBoarHitState());
         States.Add(typeof(WildBoarDeadState), new WildBoarDeadState());
+        States.Add(typeof(WildBoarReturnState), new WildBoarReturnState()); 
         
         DefaultState = States[typeof(WildBoarIdleState)];
 
-        var param = new WildBoarBaseState.StateControllerParameter
+        var parameter = new WildBoarBaseState.StateControllerParameter
         {
             wildboar = this,
             attackCollider = AttackCollider,
             wildboarAnimator = Animator,
             animEventReceiver = AnimEventReceiver,
             agent = Agent,
-   
         };
         
         foreach (var state in States.Values)
         {
-            state.Initialize(param);
+            state.Initialize(parameter);
         }
-        
     }
 
     private void InitializeCombat()
     {
-        // HitBox 초기화
         if (AttackCollider != null)
         {
             var hitBox = AttackCollider.GetComponent<HitBox>();
             if (hitBox != null)
             {
-                hitBox.Initialize(this);
+                hitBox.Initialize(this, playerLayer);
             }
         }
 
-        // HurtBox 초기화
         var hurtBoxes = GetComponentsInChildren<HurtBox>();
-        foreach (var hb in hurtBoxes)
+        foreach (var hurtBox in hurtBoxes)
         {
-            hb.Initialize(this);
+            hurtBox.Initialize(this);
         }
     }
 
@@ -145,7 +178,11 @@ public class WildBoar : MonoBehaviour, ICombatAgent
             {
                 PlayerStatusController.Instance.AddExp(Exp);
                 PlayerStatusController.Instance.AddGold(DropGold);
-                Debug.Log($"[WildBoar] 처치 보상 지급: EXP {Exp}, Gold {DropGold}");
+            }
+
+            if (QuestManager.IsInitialized)
+            {
+                QuestManager.Instance.UpdateKillQuest("WildBoar");
             }
         };
         
@@ -154,27 +191,19 @@ public class WildBoar : MonoBehaviour, ICombatAgent
 
     private void InitializeStat()
     {
-        if (EnemyDataManager.Instance == null)
-        {
-            Debug.LogError("[WildBoar] EnemyDataManager가 없습니다.");
-            return;
-        }
+        if (EnemyDataManager.Instance == null) return;
 
-        var stat = EnemyDataManager.Instance.GetEnemyStat(enemyID);
-        if (stat != null)
+        var enemyStat = EnemyDataManager.Instance.GetEnemyStat(enemyID);
+        if (enemyStat != null)
         {
-            Exp = stat.Exp;
-            MoveSpeed = stat.MoveSpeed;
-            MaxHP = stat.HP;
-            CurrentHP = stat.HP;
-            ATK = stat.ATK;
-            
-            Debug.Log($"<color=orange>[WildBoar Data]</color> {stat.Name} (ID:{stat.ID}) 로드 완료\n" +
-                      $"HP: {stat.HP}, ATK: {stat.ATK}, DEF: {stat.DEF}, Exp: {stat.Exp}, Speed: {stat.MoveSpeed}");
-        }
-        else
-        {
-            Debug.LogError($"[WildBoar] ID {enemyID} 데이터를 찾을 수 없습니다.");
+            EnemyName = enemyStat.Name; // [추가] 이름 연동
+            Level = enemyStat.Level;     // [추가] 레벨 연동
+            Exp = enemyStat.Exp;
+            MoveSpeed = enemyStat.MoveSpeed;
+            MaxHP = enemyStat.HP;
+            CurrentHP = enemyStat.HP;
+            ATK = enemyStat.ATK;
+            DEF = enemyStat.DEF; // [추가] 방어력 주입
         }
     }
     
@@ -195,17 +224,35 @@ public class WildBoar : MonoBehaviour, ICombatAgent
         }
         
         CurrentState.EnterState();
-        Debug.Log($"{prevState?.GetType().Name} changed to {CurrentState.GetType().Name}");
     }
-
-    // --- ICombatAgent Implementation ---
 
     public void TakeDamage(float damage, HitInfo hitInfo)
     {
-        CurrentHP -= damage;
-        CurrentHitCount++;
+        if (isDead == true) return; // [추가] 이미 사망한 경우 피해 무시
+
+        // [수정] 방어력 적용 및 최소 데미지 1 보정
+        float finalDamage = Mathf.Max(1f, damage - DEF);
+        CurrentHP -= finalDamage;
         
-        Debug.Log($"[WildBoar] 피격! 데미지 : {damage}, 남은 HP: {CurrentHP}");
+        // [수정] 피격 시 즉시 반응 강화
+        if (Player.Instance != null)
+        {
+            SetTarget(Player.Instance.transform);
+            transform.rotation = Quaternion.LookRotation(transform.FlatDirectionTo(Player.Instance.transform));
+        }
+
+        if (Agent.isOnNavMesh)
+        {
+            Agent.isStopped = true;
+            Agent.velocity = Vector3.zero;
+            Agent.ResetPath();
+        }
+
+        // 체력바 UI 갱신
+        if (statUI != null)
+        {
+            statUI.UpdateHPBar(CurrentHP, MaxHP);
+        }
 
         if (CurrentHP <= 0)
         {
@@ -213,6 +260,7 @@ public class WildBoar : MonoBehaviour, ICombatAgent
         }
         else
         {
+            // [핵심] Idle이나 Patrol 중이었다면 즉시 HitState로 전환하여 반응함
             ChangeState<WildBoarHitState>();
         }
     }
@@ -226,8 +274,6 @@ public class WildBoar : MonoBehaviour, ICombatAgent
         combatEvent.HitInfo = hitInfo;
         
         CombatSystem.Instance.AddCombatEvent(combatEvent);
-        
-        Debug.Log($"[WildBoar] 공격 적중! 대상: {hitInfo.receiver}");
     }
     
     
@@ -235,37 +281,17 @@ public class WildBoar : MonoBehaviour, ICombatAgent
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()
     {
-        if (eyeTransform == null)
-        {
-            return;
-        }
-        // 탐지 반경을 하얀색 와이어 스피어로 그립니다.
+        if (eyeTransform == null) return;
         Gizmos.color = Color.white;
         Gizmos.DrawWireSphere(eyeTransform.position, detectionRadius);
-        
-        // 시야각(부채꼴)을 그립니다.
         Handles.color = new Color(1f,1f,0f, 0.2f);
-        
-        // 부채꼴의 시작 방향을 계산합니다.
         Vector3 rangeDirection = Quaternion.Euler(0, -detectionAngle / 2, 0) * eyeTransform.forward;
-        
-        // 채워진 부채꼴을 그려줍니다.
-        Handles.DrawSolidArc(
-            eyeTransform.position, // 중심점
-            eyeTransform.up, // 부채꼴이 그려질 평면의 법선 백터(몬스터의 위 방향)
-            rangeDirection, // 부채꼴의 시작 방향
-            detectionAngle,      // 부채꼴의 총 각도
-            detectionRadius);   // 부채꼴의 반 지름
-
+        Handles.DrawSolidArc(eyeTransform.position, eyeTransform.up, rangeDirection, detectionAngle, detectionRadius);
         Handles.color = Color.yellow;
-        Vector3 leftDirection = rangeDirection; // 시작 방향과 동일
+        Vector3 leftDirection = rangeDirection; 
         Vector3 rightDirection = Quaternion.Euler(0, detectionAngle / 2, 0) * eyeTransform.forward;
-        
         Handles.DrawLine(eyeTransform.position, eyeTransform.position + rightDirection * detectionRadius, 2f);
         Handles.DrawLine(eyeTransform.position, eyeTransform.position + leftDirection * detectionRadius, 2f);
     }
 #endif
-    
-    
-    
 }

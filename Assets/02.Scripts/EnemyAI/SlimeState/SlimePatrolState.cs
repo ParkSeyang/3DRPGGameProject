@@ -1,12 +1,12 @@
 using UnityEngine;
 using UnityEngine.AI;
+
 public class SlimePatrolState : SlimeBaseState
 {
-    private static readonly int Walk = Animator.StringToHash("Walk");
+    private static readonly int MoveSpeed = Animator.StringToHash("MoveSpeed");
+    private const float DAMP_TIME = 0.15f; // 부드러운 전이 시간
 
-    // 정찰시 시작 위치
     private Vector3 startPos;
-    // 정찰시 도착해야될 위치
     private Vector3 targetPos;
     
     public override void Initialize(StateControllerParameter parameter)
@@ -16,21 +16,29 @@ public class SlimePatrolState : SlimeBaseState
 
     public override void EnterState()
     {
-        startPos = Slime.transform.position;
+        // [수정] 현재 위치가 아닌 '스폰 위치'를 기준으로 시작점 설정
+        startPos = Slime.SpawnPoint != null ? Slime.SpawnPoint.transform.position : Slime.transform.position;
         targetPos = CalculatePatrolDestination();
         
         Agent.speed = Slime.MoveSpeed;
         Agent.SetDestination(targetPos);
         Agent.isStopped = false;
-        
-        SlimeAnimator.SetTrigger(Walk);
     }
 
     public override void UpdateState()
     {
+        // 댐핑을 이용해 부드럽게 1.0(Walk)으로 가속
+        SlimeAnimator.SetFloat(MoveSpeed, 1f, DAMP_TIME, Time.deltaTime);
+
         if (IsPlayerInSight())
         {
             Slime.ChangeState<SlimeChaseState>();
+            return;
+        }
+
+        if (IsMonsterInFront())
+        {
+            Slime.ChangeState<SlimeIdleState>();
             return;
         }
 
@@ -38,7 +46,6 @@ public class SlimePatrolState : SlimeBaseState
         {
             Slime.ChangeState<SlimeIdleState>();
         }
-        
     }
 
     public override void ExitState()
@@ -50,33 +57,22 @@ public class SlimePatrolState : SlimeBaseState
         }
     }
     
-    
-    // 8방향 체크 및 장애물 회피 이동 위치 계산
     private Vector3 CalculatePatrolDestination()
     {
-        int randomDirIndex = Random.Range(0, 8);
-        float angle = randomDirIndex * 45f;
-        Vector3 direction = Quaternion.Euler(0, angle, 0) * Vector3.forward;
-        float moveDistance = Slime.PatrolRadius;
-
-        Vector3 origin = startPos + Vector3.up * 0.5f;
-        
-        // 장애물을 체크하는 로직 : 장애물이 있으면 그앞 까지만 이동하도록 해줌
-        if (Physics.Raycast(origin, direction, out RaycastHit hit, moveDistance, Slime.ObstacleLayer))
+        Vector3 finalPos = startPos;
+        int maxAttempts = 10;
+        for (int i = 0; i < maxAttempts; i++)
         {
-            float safeDist = Mathf.Max(0, hit.distance - Agent.radius);
-            return startPos + (direction * safeDist);
+            float randomAngle = Random.Range(0f, 360f);
+            Vector3 direction = Quaternion.Euler(0, randomAngle, 0) * Vector3.forward;
+            float minDistance = Slime.PatrolRadius * 0.3f;
+            float moveDistance = Random.Range(minDistance, Slime.PatrolRadius);
+            Vector3 candidatePos = startPos + (direction * moveDistance);
+            if (Physics.Raycast(startPos + Vector3.up * 0.5f, direction, out RaycastHit hit, moveDistance, Slime.ObstacleLayer))
+                candidatePos = hit.point - (direction * 0.5f);
+            if (NavMesh.SamplePosition(candidatePos, out NavMeshHit navHit, 5.0f, NavMesh.AllAreas))
+                if (Vector3.Distance(startPos, navHit.position) > 2.0f) return navHit.position;
         }
-
-        Vector3 finalPos = startPos + (direction * moveDistance);
-        
-        // NavMesh 위인지 확인
-        if (NavMesh.SamplePosition(finalPos, out NavMeshHit navHit, 2.0f, NavMesh.AllAreas))
-        {
-            return navHit.position;
-        }
-
         return startPos;
-
     }
 }

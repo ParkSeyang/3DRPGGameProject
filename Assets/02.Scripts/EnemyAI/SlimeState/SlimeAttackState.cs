@@ -2,15 +2,18 @@ using UnityEngine;
 
 public class SlimeAttackState : SlimeBaseState
 {
+    private static readonly int MoveSpeed = Animator.StringToHash("MoveSpeed");
     private static readonly int Attack = Animator.StringToHash("Attack");
     
     private const string ATP_COLLIDER_ON = "Attack_Collider_On";
-        private const string ATP_COLLIDER_OFF = "Attack_Collider_Off";
-        private const string ATP_ANIM_END = "Attack_End";
-        
-        // 공격 상태 유지 범위 확대
-        private const float ATTACK_RANGE_TOLERANCE = 1.0f;
-        private HitBox hitBox;
+    private const string ATP_COLLIDER_OFF = "Attack_Collider_Off";
+    private const string ATP_ANIM_END = "Attack_End";
+    
+    private const float ATTACK_RANGE_TOLERANCE = 1.0f;
+    private const float FAIL_SAFE_TIME = 2.0f; // 애니메이션 이벤트 누락 대비용
+    
+    private HitBox hitBox;
+    private float stateTimer = 0f;
     
     public override void Initialize(StateControllerParameter parameter)
     {
@@ -21,9 +24,11 @@ public class SlimeAttackState : SlimeBaseState
         }
     }
 
-
     public override void EnterState()
     {
+        stateTimer = 0f;
+        SlimeAnimator.SetFloat(MoveSpeed, 0f);
+
         if (Agent.isOnNavMesh)
         {
             Agent.isStopped = true;
@@ -32,11 +37,8 @@ public class SlimeAttackState : SlimeBaseState
 
         if (Slime.Target != null)
         {
-           Slime.transform.rotation = 
-               Slime.transform.FlatRotationTo(Slime.Target);
+           Slime.transform.rotation = Slime.transform.FlatRotationTo(Slime.Target);
         }
-        
-        // AttackCollider.enabled = false; // HitBox 제어로 대체
         
         SlimeAnimator.SetTrigger(Attack);
         AnimEventReceiver.OnAnimationTriggerReceived += OnTriggeredEvent;
@@ -44,15 +46,22 @@ public class SlimeAttackState : SlimeBaseState
 
     public override void UpdateState()
     {
+        stateTimer += Time.deltaTime;
+
         if (Slime.Target != null)
         {
             Slime.transform.SmoothLookAtFlat(Slime.Target, 5.0f);
+        }
+
+        // 안전 장치: 어떤 이유로든 애니메이션 이벤트가 안 들어오면 2초 뒤 강제 복귀
+        if (stateTimer >= FAIL_SAFE_TIME)
+        {
+            DetermineNextState();
         }
     }
 
     public override void ExitState()
     {
-        // AttackCollider.enabled = false;
         hitBox?.DisableDetection();
         AnimEventReceiver.OnAnimationTriggerReceived -= OnTriggeredEvent;
     }
@@ -62,43 +71,40 @@ public class SlimeAttackState : SlimeBaseState
         switch (animEvent)
         {
             case ATP_COLLIDER_ON:
-                Debug.Log($"공격 시작");
                 hitBox?.EnableDetection();
                 break;
             case ATP_COLLIDER_OFF:
-                Debug.Log($"공격 끝");
                 hitBox?.DisableDetection();
                 break;
             case ATP_ANIM_END:
-                Debug.Log($"애니메이션 종료 상태 다음상태를 진행합니다.");
                 DetermineNextState();
-                break;
-            default:
                 break;
         }
     }
 
     private void DetermineNextState()
     {
-        // 타겟이 없거나 시야에서 사라졌다면 Idle 상태로 전환
+        // 중복 호출 방지를 위해 타이머 초기화
+        stateTimer = -100f; 
+
         if (Slime.Target == null || IsPlayerInSight() == false)
         {
             Slime.ChangeState<SlimeIdleState>();
             return;
         }
 
-        // 거리 계산 (TransformExtensions 활용 - Y축 무시)
         float distance = Slime.transform.FlatDistanceTo(Slime.Target);
 
-        // 사거리(StoppingDistance) + 오차 범위보다 멀어져야 추격 시작
+        // 사거리 밖이면 추격
         if (distance > Agent.stoppingDistance + ATTACK_RANGE_TOLERANCE)
         {
             Slime.ChangeState<SlimeChaseState>();
         }
         else
         {
-            // 여전히 사거리 내라면 다시 공격 (연속 공격)
-            Slime.ChangeState<SlimeAttackState>();
+            // [중요] 사거리 안이라도 Idle로 한 번 보내서 애니메이터를 리셋시킴
+            // Idle 상태는 다음 프레임에 즉시 다시 Chase나 Attack을 판단할 것임
+            Slime.ChangeState<SlimeIdleState>();
         }
     }
 }

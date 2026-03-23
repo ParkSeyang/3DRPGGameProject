@@ -35,11 +35,9 @@ namespace Jay
                 using var csv = new CsvWriter(writer, config);
 
                 csv.WriteRecords(records);
-                Debug.Log($"TSV 저장 완료: {filePath}");
             }
-            catch (System.Exception ex)
+            catch (System.Exception)
             {
-                Debug.LogError($"TSVWriter 저장 실패: {filePath}\n{ex}");
             }
         }
     }

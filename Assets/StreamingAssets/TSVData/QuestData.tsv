@@ -1,0 +1,7 @@
+Category	Key	Name	Description	Type	Parameter	RewardGold	RewardExp
+TutorialQuest	TutorialQuest	시작 마을 진입!	마을 이장에게 말을 걸어보세요.	Tutorial	Tutorial_End:1	300	100
+RepeatQuest	RepeatQuest_1	재채기가 싫어요.	마을에 포자를 날리는 노랑무늬버섯을 잡으세요.	Repeat	Mushroom:5	100	150
+RepeatQuest	RepeatQuest_2	식량 확보	야생돼지를 10마리 잡아오세요.	Repeat	WildBoar:10	200	250
+NormalQuest	NormalQuest_1	슬라임 퇴치	슬라임 5마리를 잡아오세요.	Normal	Slime:5	75	125
+NormalQuest	NormalQuest_2	용병의 지갑사정 	포션상점에 가서 회복포션(소)를 두개 구매하세요.	Normal	I001:2	50	105
+NormalQuest	NormalQuest_3	사랑의 큐피트	장신구 상점에 가서 초심자의 반지를 하나 구매하세요	Normal	I008:1	250	120

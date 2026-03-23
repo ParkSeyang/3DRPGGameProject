@@ -1,5 +1,6 @@
 ﻿#pragma warning disable
 
+using System.Reflection;
 using UnityEngine.Experimental.Rendering;
 using USI = UnityEngine.SystemInfo;
 
@@ -36,6 +37,12 @@ namespace UnityEngine.Rendering.HighDefinition
 #endif
 #if UNITY_6000_3_OR_NEWER
         public static bool supportsDynamicResolution => USI.supportsDynamicResolution;
+#elif UNITY_6000_0_OR_NEWER
+        // `supportsDynamicResolution` only exists in Unity 6000.0.62+ and 6000.2.11+, which means we cannot assume this property can be accessed directly.
+        // So instead we use reflection to indirectly request access to this property and use a default fallback if it cannot be found.
+        private static readonly PropertyInfo SupportsDynamicResolutionProperty = typeof(USI).GetProperty(nameof(supportsDynamicResolution), BindingFlags.Public | BindingFlags.Static);
+        private static readonly object BoxedTrue = true;
+        public static bool supportsDynamicResolution => SupportsDynamicResolutionProperty?.GetValue(null).Equals(BoxedTrue) ?? false;
 #endif
     }
 }

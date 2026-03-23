@@ -2,7 +2,10 @@ using UnityEngine;
 
 public class SlimeChaseState : SlimeBaseState
 {
-    private static readonly int Walk = Animator.StringToHash("Walk");
+    private static readonly int MoveSpeed = Animator.StringToHash("MoveSpeed");
+    private const float TARGET_CHASE_ANIM_SPEED = 1.5f;
+    private const float DAMP_TIME = 0.1f;
+
     public override void Initialize(StateControllerParameter parameter)
     {
         base.Initialize(parameter);
@@ -10,7 +13,6 @@ public class SlimeChaseState : SlimeBaseState
     
     public override void EnterState()
     {
-        // 타겟이 없거나 또는 시야에 플레이어가 안보일 경우
         if (Slime.Target == null || IsPlayerInSight() == false)
         {
             Slime.ChangeState<SlimeIdleState>();
@@ -19,31 +21,39 @@ public class SlimeChaseState : SlimeBaseState
 
         Agent.speed = Slime.MoveSpeed * 2.0f;
         Agent.isStopped = false;
-        SlimeAnimator.SetTrigger(Walk);
     }
 
     public override void UpdateState()
     {
+        // 댐핑을 이용해 부드럽게 추격 속도로 가속
+        SlimeAnimator.SetFloat(MoveSpeed, TARGET_CHASE_ANIM_SPEED, DAMP_TIME, Time.deltaTime);
+
         if (Slime.Target == null || IsPlayerInSight() == false)
         {
             Slime.ChangeState<SlimeIdleState>();
             return;
         }
 
-        // 거리 체크를 이동 명령보다 먼저 수행
-        float distance = Slime.transform.FlatDistanceTo(Slime.Target);
+        if (Slime.SpawnPoint != null)
+        {
+            float distanceFromSpawn = Vector3.Distance(Slime.transform.position, Slime.SpawnPoint.transform.position);
+            if (distanceFromSpawn > Slime.SpawnPoint.leashRange)
+            {
+                Slime.ChangeState<SlimeReturnState>();
+                return;
+            }
+        }
 
+        float distance = Slime.transform.FlatDistanceTo(Slime.Target);
         if (distance <= Agent.stoppingDistance + 0.2f)
         {
             Agent.isStopped = true;
             Agent.velocity = Vector3.zero;
             Agent.ResetPath();
-            
             Slime.ChangeState<SlimeAttackState>();
             return;
         }
 
-        // 적을 쫒는 로직
         Agent.SetDestination(Slime.Target.position);
     }
 
